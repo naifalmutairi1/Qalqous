@@ -13,20 +13,42 @@ from datetime import datetime, timedelta
 
 from db import connect
 
-EMPLOYEES = [
-    "ahmed.s", "fatima.k", "khalid.m", "noura.a", "omar.h", "sara.y",
-    "faisal.r", "huda.n", "yousef.b", "lama.t", "majed.f", "reem.d",
-    "turki.z", "maha.q", "saad.w", "abeer.l", "nasser.j", "dana.g",
-    "bandar.o", "hind.e", "fahad.i", "ruba.c", "sultan.v", "jawaher.p",
-    "it.admin",
-]
+# username: (display name, one line of what the account can access). All invented.
+ACCOUNTS = {
+    "ahmed.s":   ("أحمد السبيعي", "موظف عادي: يقرأ ملفات قسم المبيعات"),
+    "fatima.k":  ("فاطمة القحطاني", "موظفة عادية: تقرأ ملفات الموارد البشرية وتعدّلها"),
+    "khalid.m":  ("خالد المطيري", "مشرف مشاريع: يقرأ ملفات المشاريع ويرفع المخططات"),
+    "noura.a":   ("نورة العنزي", "موظفة عادية: تقرأ ملفات قسم الحسابات"),
+    "omar.h":    ("عمر الحربي", "مهندس موقع: يقرأ مخططات المشاريع"),
+    "sara.y":    ("Sarah Young", "موظفة عادية: تقرأ ملفات قسم الحسابات وتعدّلها"),
+    "faisal.r":  ("فيصل الرشيدي", "مهندس موقع: يقرأ مخططات المشاريع"),
+    "huda.n":    ("هدى النعيمي", "موظفة عادية: تقرأ ملفات قسم المشتريات"),
+    "yousef.b":  ("يوسف البقمي", "مدير مالي: يقرأ ويعدّل كل ملفات الحسابات ويوافق على الدفعات"),
+    "lama.t":    ("لمى التميمي", "موظفة عادية: تقرأ ملفات التسويق"),
+    "majed.f":   ("ماجد بن فهد بن عبدالرحمن العتيبي", "موظف عادي: يقرأ ملفات قسم المشتريات"),
+    "reem.d":    ("ريم الدوسري", "موظفة عادية: تقرأ ملفات الموارد البشرية"),
+    "turki.z":   ("تركي الزهراني", "مشرف مشاريع: يقرأ ملفات المشاريع ويرفع المخططات"),
+    "maha.q":    ("مها القرني", "موظفة عادية: تقرأ ملفات قسم المبيعات"),
+    "saad.w":    ("سعد الوادعي", "مهندس موقع: يقرأ مخططات المشاريع"),
+    "abeer.l":   ("عبير اللحياني", "موظفة عادية: تقرأ ملفات العقود"),
+    "nasser.j":  ("ناصر الجهني", "مدير المشتريات: يقرأ ويعدّل ملفات المشتريات ويوافق على الطلبات"),
+    "dana.g":    ("دانة الغامدي", "موظفة عادية: تقرأ ملفات التسويق"),
+    "bandar.o":  ("بندر العمري", "مهندس موقع: يقرأ مخططات المشاريع"),
+    "hind.e":    ("هند العسيري", "موظفة عادية: تقرأ ملفات العقود"),
+    "fahad.i":   ("فهد الإبراهيم", "المدير العام: يقرأ كل ملفات الشركة"),
+    "ruba.c":    ("ربى الشمري", "موظفة عادية: تقرأ ملفات قسم المبيعات"),
+    "sultan.v":  ("سلطان الحارثي", "مهندس موقع: يقرأ مخططات المشاريع"),
+    "jawaher.p": ("الجوهرة البلوي", "موظفة عادية: تقرأ ملفات الموارد البشرية"),
+    "it.admin":  ("أبو فهد", "مدير تقنية المعلومات: يصل إلى كل الأنظمة"),
+}
+EMPLOYEES = list(ACCOUNTS)
 
 TARGET_LINES = 1500
 DAY = datetime(2026, 11, 21)
 
 
 def office_ip():
-    return f"10.0.0.{random.randint(10, 60)}"          # inside the office
+    return f"192.0.2.{random.randint(10, 60)}"         # inside the office
 
 
 def home_ip():
@@ -34,7 +56,8 @@ def home_ip():
 
 
 def event(time, account, ip, success):
-    return (time.strftime("%Y-%m-%d %H:%M:%S"), account, ip, 1 if success else 0)
+    # ISO 8601 with the Riyadh offset, e.g. 2026-11-21T23:41:07+03:00
+    return (time.strftime("%Y-%m-%dT%H:%M:%S+03:00"), account, ip, 1 if success else 0)
 
 
 def work_time():
@@ -109,9 +132,15 @@ def main():
 
     conn = connect()
     # Start fresh every run. Old incidents etc. would point at log lines
-    # that no longer exist, so they are cleared too (children first).
-    for table in ["actions", "findings", "investigation_steps", "incidents", "log_events"]:
+    # that no longer exist, so they are cleared too (children first,
+    # because foreign keys refuse to delete a row something still points to).
+    for table in ["finding_evidence", "findings", "investigation_steps", "decisions",
+                  "incidents", "log_events", "accounts"]:
         conn.execute(f"DELETE FROM {table}")
+    conn.executemany(
+        "INSERT INTO accounts (username, display_name, access_ar) VALUES (?, ?, ?)",
+        [(username, name, access) for username, (name, access) in ACCOUNTS.items()],
+    )
     conn.executemany(
         "INSERT INTO log_events (time, account, source_ip, success) VALUES (?, ?, ?, ?)",
         events,
