@@ -1,40 +1,47 @@
 /*
   tokens.css: the ONLY place colours, fonts, sizes and spacing are defined.
-  Every other file uses var(--...). No hex values anywhere else.
-
-  These values are neutral greys ON PURPOSE: the starter is a wireframe, not a design.
-  Your look comes from YOUR DESIGN.md. When you (or the agent) copy the tokens from
-  DESIGN.md into this file, also delete the --starter-banner line below:
-  the grey "هذا هيكل" banner disappears, and that is how you know the tokens are yours.
+  It mirrors DESIGN.md (Sand & Pine). Every other file uses var(--...).
+  Adding a token here needs approval first (DESIGN.md: "anything not listed is not part of the system").
 */
 :root {
-  --starter-banner: block; /* DELETE this line once the tokens come from DESIGN.md */
+  /* Colours (DESIGN.md §2) */
+  --color-sand: #F3EEE6;      /* page background, tiles, banners, hover fills */
+  --color-sheet: #FFFFFF;     /* main sheet, cards, decision button fill */
+  --color-bark: #2B2620;      /* primary text, primary + confirm button fill */
+  --color-bark-soft: #4A4239; /* secondary text, primary button hover */
+  --color-clay-deep: #6E6253; /* labels, meta, helper text */
+  --color-clay: #9A8B78;      /* neutral button border, status dot, disabled text */
+  --color-line: #EFE8DD;      /* 1px dividers */
+  --color-pine: #2F6B4F;      /* ONLY the confirmation box after a decision */
 
-  /* Colours: 5-6 named roles. One dominant, one accent. */
-  --color-bg: #f2f2f2;
-  --color-surface: #ffffff;
-  --color-ink: #1c1c1c;
-  --color-muted: #666666;
-  --color-primary: #333333;
-  --color-accent: #888888;
-  --color-line: #d4d4d4;
-  --color-danger: #9a2a2a;
+  /* Fonts (DESIGN.md §3) */
+  --font-display: 'Almarai', sans-serif;
+  --font-body: 'Tajawal', sans-serif;
+  --font-tech: ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* Type: a display font and a body font. The body font must support Arabic.
-     Default body: Noto Sans Arabic (alternatives: Tajawal, Cairo, Readex Pro, Almarai).
-     Before you switch, type «حتى» and «على» in the new font: some fonts draw «حتى» like «حق». */
-  --font-display: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
-  --font-body: 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
-  --text-h1: 32px;
-  --text-h2: 22px;
-  --text-body: 16px;
-  --text-caption: 13px;
+  /* Type scale: 5 steps (DESIGN.md §3) */
+  --text-display: clamp(28px, 4.4vw, 46px);
+  --leading-display: 1.45;
+  --text-tile-number: 34px;
+  --leading-tile-number: 1.2;
+  --text-title: 24px;
+  --leading-title: 1.4;
+  --text-body: 17px;
+  --leading-body: 1.8;
+  --text-small: 15px;
+  --leading-small: 1.7;
+  /* Technical values take their context's size (not a new step): tile IP and evidence log */
+  --text-tech-tile: 23px;
+  --text-tech-log: 14px;
+  --leading-tech-log: 1.95;
+
   --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600; /* technical font in tiles only */
   --weight-bold: 700;
-  --leading-tight: 1.35;
-  --leading-body: 1.75;
+  --weight-heavy: 800;
 
-  /* Spacing scale: use only these steps. */
+  /* Spacing scale (DESIGN.md §4): use only these steps */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -43,16 +50,36 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  /* Shape */
-  --radius: 8px;
-  --border-width: 1px;
-  --shadow: none;
+  /* Component paddings that DESIGN.md §5 gives outside the spacing scale */
+  --space-tile-block: 20px;                    /* number tile padding-block, evidence bar padding-inline (5.4, 5.8) */
+  --space-confirmation: clamp(24px, 4vw, 36px); /* confirmation box padding (5.9) */
 
-  /* Layout */
-  --tap: 44px;          /* minimum touch target */
-  --content-max: 1120px;
+  /* Radius */
+  --radius-inner: 12px;  /* evidence log line block */
+  --radius-card: 20px;   /* tiles, cards, banners, boxes */
+  --radius-sheet: 28px;  /* main sheet */
+  --radius-pill: 999px;  /* every button */
+
+  /* Borders */
+  --border-button: 1.5px;
+  --border-divider: 1px;
+  --border-dot: 2px;       /* hollow status dot (5.7 error) */
+
+  /* Sizes */
+  --button-height: 56px;
+  --button-height-small: 48px;
+  --tap: 44px;                          /* minimum hit target */
+  --sheet-max: 880px;
+  --page-padding: clamp(12px, 3vw, 40px);
+  --dot-size: 10px;
+  --check-circle: 44px;
+  --tile-min: 200px;         /* number tiles: up to 3 per row, stack on phone (5.4) */
+  --fact-label-min: 120px;   /* fact row label column (5.5) */
+  --fact-label-max: 180px;
+  --decision-basis: 240px;   /* each decision button: flex 1 1 240px (5.1) */
+  --list-item-min: 64px;     /* previous-report list item min height (5.10) */
 
   /* Motion */
   --dur-fast: 150ms;
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-pulse: 1.6s;
 }

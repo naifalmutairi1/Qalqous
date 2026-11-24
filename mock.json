@@ -1,0 +1,130 @@
+{
+  "company": {
+    "name": "Najd Build Contracting",
+    "timezone": "Asia/Riyadh",
+    "admin": { "id": "admin-1", "displayName": "أبو فهد" }
+  },
+  "monitor": {
+    "accountsMonitored": 25,
+    "lastCheckAt": "2026-11-23T23:08:00+03:00",
+    "status": "ok"
+  },
+  "accounts": [
+    {
+      "username": "majed.f",
+      "displayName": "ماجد بن فهد بن عبدالرحمن العتيبي",
+      "department": "المشتريات",
+      "access": "موظف عادي: يقرأ ملفات قسم المشتريات",
+      "status": "suspended",
+      "knownIps": ["192.0.2.14"]
+    },
+    {
+      "username": "sara.k",
+      "displayName": "Sarah Kelly",
+      "department": "الحسابات",
+      "access": "موظفة عادية: تقرأ ملفات قسم الحسابات وتعدّلها",
+      "status": "active",
+      "knownIps": ["192.0.2.14", "198.51.100.23"]
+    },
+    {
+      "username": "khalid.m",
+      "displayName": "خالد المطيري",
+      "department": "المشاريع",
+      "access": "مشرف مشاريع: يقرأ ملفات المشاريع ويرفع المخططات",
+      "status": "suspended",
+      "knownIps": ["192.0.2.14"]
+    }
+  ],
+  "logs": [
+    { "id": "evt-40121", "at": "2026-11-23T22:59:14+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40122", "at": "2026-11-23T22:59:31+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40123", "at": "2026-11-23T22:59:50+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40124", "at": "2026-11-23T23:00:08+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40125", "at": "2026-11-23T23:00:26+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40126", "at": "2026-11-23T23:00:45+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40127", "at": "2026-11-23T23:01:03+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40128", "at": "2026-11-23T23:01:21+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40129", "at": "2026-11-23T23:01:40+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40130", "at": "2026-11-23T23:01:58+03:00", "event": "LOGIN_FAIL",    "username": "majed.f", "ip": "203.0.113.102" },
+    { "id": "evt-40131", "at": "2026-11-23T23:02:07+03:00", "event": "LOGIN_SUCCESS", "username": "majed.f", "ip": "203.0.113.102" },
+
+    { "id": "evt-39020", "at": "2026-11-18T08:41:02+03:00", "event": "LOGIN_FAIL",    "username": "sara.k",  "ip": "198.51.100.23" },
+    { "id": "evt-39021", "at": "2026-11-18T08:41:40+03:00", "event": "LOGIN_FAIL",    "username": "sara.k",  "ip": "198.51.100.23" },
+    { "id": "evt-39022", "at": "2026-11-18T08:42:15+03:00", "event": "LOGIN_FAIL",    "username": "sara.k",  "ip": "198.51.100.23" },
+    { "id": "evt-39023", "at": "2026-11-18T08:43:01+03:00", "event": "LOGIN_FAIL",    "username": "sara.k",  "ip": "198.51.100.23" },
+    { "id": "evt-39024", "at": "2026-11-18T08:44:30+03:00", "event": "LOGIN_FAIL",    "username": "sara.k",  "ip": "198.51.100.23" },
+    { "id": "evt-39025", "at": "2026-11-18T08:45:12+03:00", "event": "LOGIN_SUCCESS", "username": "sara.k",  "ip": "198.51.100.23" },
+
+    { "id": "evt-36510", "at": "2026-11-02T19:20:05+03:00", "event": "LOGIN_FAIL",    "username": "khalid.m", "ip": "203.0.113.57" },
+    { "id": "evt-36511", "at": "2026-11-02T19:20:19+03:00", "event": "LOGIN_FAIL",    "username": "khalid.m", "ip": "203.0.113.57" },
+    { "id": "evt-36512", "at": "2026-11-02T19:20:33+03:00", "event": "LOGIN_FAIL",    "username": "khalid.m", "ip": "203.0.113.57" },
+    { "id": "evt-36513", "at": "2026-11-02T19:20:48+03:00", "event": "LOGIN_FAIL",    "username": "khalid.m", "ip": "203.0.113.57" },
+    { "id": "evt-36514", "at": "2026-11-02T19:21:02+03:00", "event": "LOGIN_FAIL",    "username": "khalid.m", "ip": "203.0.113.57" },
+    { "id": "evt-36515", "at": "2026-11-02T19:21:16+03:00", "event": "LOGIN_FAIL",    "username": "khalid.m", "ip": "203.0.113.57" },
+    { "id": "evt-36516", "at": "2026-11-02T19:21:30+03:00", "event": "LOGIN_SUCCESS", "username": "khalid.m", "ip": "203.0.113.57" }
+  ],
+  "incidents": [
+    {
+      "id": "inc-0014",
+      "username": "majed.f",
+      "status": "awaiting_decision",
+      "reportSource": "ai",
+      "headline": "أوقفنا حساب majed.f مؤقتاً: احتمال دخول غير مصرّح به",
+      "openedAt": "2026-11-23T23:02:07+03:00",
+      "suspendedAt": "2026-11-23T23:02:07+03:00",
+      "reportReadyAt": "2026-11-23T23:05:00+03:00",
+      "failedAttempts": 10,
+      "firstFailAt": "2026-11-23T22:59:14+03:00",
+      "lastFailAt": "2026-11-23T23:01:58+03:00",
+      "successAt": "2026-11-23T23:02:07+03:00",
+      "sourceIp": "203.0.113.102",
+      "ipSeenBefore": false,
+      "access": "موظف عادي: يقرأ ملفات قسم المشتريات",
+      "evidenceLogIds": ["evt-40121","evt-40122","evt-40123","evt-40124","evt-40125","evt-40126","evt-40127","evt-40128","evt-40129","evt-40130","evt-40131"],
+      "findings": [
+        { "text": "١٠ محاولات بكلمة مرور خاطئة خلال أقل من ٣ دقائق", "evidenceLogIds": ["evt-40121","evt-40130"], "confirmed": true },
+        { "text": "نجح الدخول بعدها مرة واحدة الساعة ١١:٠٢ م", "evidenceLogIds": ["evt-40131"], "confirmed": true },
+        { "text": "أول مرة يدخل هذا الحساب من هذا العنوان", "evidenceLogIds": ["evt-40131"], "confirmed": true }
+      ],
+      "decision": null
+    },
+    {
+      "id": "inc-0013",
+      "username": "sara.k",
+      "status": "decided",
+      "reportSource": "ai",
+      "headline": "أوقفنا حساب sara.k مؤقتاً: احتمال دخول غير مصرّح به",
+      "openedAt": "2026-11-18T08:45:12+03:00",
+      "suspendedAt": "2026-11-18T08:45:12+03:00",
+      "failedAttempts": 5,
+      "firstFailAt": "2026-11-18T08:41:02+03:00",
+      "lastFailAt": "2026-11-18T08:44:30+03:00",
+      "successAt": "2026-11-18T08:45:12+03:00",
+      "sourceIp": "198.51.100.23",
+      "ipSeenBefore": true,
+      "access": "موظفة عادية: تقرأ ملفات قسم الحسابات وتعدّلها",
+      "evidenceLogIds": ["evt-39020","evt-39021","evt-39022","evt-39023","evt-39024","evt-39025"],
+      "findings": [],
+      "decision": { "choice": "restore", "decidedAt": "2026-11-18T09:10:00+03:00", "decidedBy": "admin-1" }
+    },
+    {
+      "id": "inc-0012",
+      "username": "khalid.m",
+      "status": "decided",
+      "reportSource": "rules",
+      "headline": "أوقفنا حساب khalid.m مؤقتاً: احتمال دخول غير مصرّح به",
+      "openedAt": "2026-11-02T19:21:30+03:00",
+      "suspendedAt": "2026-11-02T19:21:30+03:00",
+      "failedAttempts": 6,
+      "firstFailAt": "2026-11-02T19:20:05+03:00",
+      "lastFailAt": "2026-11-02T19:21:16+03:00",
+      "successAt": "2026-11-02T19:21:30+03:00",
+      "sourceIp": "203.0.113.57",
+      "ipSeenBefore": false,
+      "access": "مشرف مشاريع: يقرأ ملفات المشاريع ويرفع المخططات",
+      "evidenceLogIds": ["evt-36510","evt-36511","evt-36512","evt-36513","evt-36514","evt-36515","evt-36516"],
+      "findings": [],
+      "decision": { "choice": "keep_suspended", "decidedAt": "2026-11-02T19:45:00+03:00", "decidedBy": "admin-1" }
+    }
+  ]
+}

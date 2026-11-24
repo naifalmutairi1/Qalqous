@@ -1,0 +1,37 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-sand);
+  border-radius: var(--radius-card);
+}
+
+/* The text wants most of the row (60%). On a phone that leaves no room for the action,
+   so the button wraps to its own line instead of squeezing the text. */
+.banner__text { flex: 1 1 60%; min-inline-size: 0; }
+
+.banner__dot {
+  flex: none;
+  inline-size: var(--dot-size);
+  block-size: var(--dot-size);
+  border-radius: var(--radius-pill);
+  background: var(--color-clay);
+}
+
+/* Loading: opacity 0.4 -> 1 -> 0.4 over 1.6s (DESIGN.md 5.7). Turned off by prefers-reduced-motion in base.css. */
+.banner--loading .banner__dot,
+.pulse-dot {
+  animation: pulse var(--dur-pulse) ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Error: hollow dot, 2px clay ring. */
+.banner--error .banner__dot {
+  background: none;
+  border: var(--border-dot) solid var(--color-clay);
+}

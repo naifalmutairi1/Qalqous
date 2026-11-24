@@ -1,0 +1,26 @@
+.incident-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-sheet);
+  border-radius: var(--radius-card);
+}
+
+.incident-card__tag,
+.incident-card__meta {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--color-clay-deep);
+}
+.incident-card__tag { font-weight: var(--weight-bold); }
+
+.incident-card__title {
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.incident-card__summary { color: var(--color-bark-soft); }
+
+/* The button keeps its own width (does not stretch), at the inline start. */
+.incident-card__action { display: flex; padding-block-start: var(--space-1); }

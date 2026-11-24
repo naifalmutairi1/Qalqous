@@ -5,16 +5,19 @@ An agent that investigates suspicious logins in a small company's authentication
 
 ## MVP scope
 Must stories (build only these; anything else needs my approval first):
-1. Spot repeated failed logins followed by a success, and open an incident.
-2. A short Arabic report (which account, how they got in, what to do first) with a log line behind every claim. If time runs short, this is the part that must be solid.
-3. Every suggested action waits for Approve or Reject.
+1. Spot repeated failed logins followed by a success, open an incident, and suspend the account (simulated data only).
+2. A short Arabic report (which account, what it can access, how many attempts, when, from which address and whether that address was seen before) with a log line behind every claim. If time runs short, this is the part that must be solid.
+3. The admin chooses «إبقاءه موقوف» (`keep_suspended`) or «إرجاع الحساب» (`restore`), confirms it («هل أنت متأكد؟»), and sees a lasting confirmation with the time.
+Approved Should: «آخر قرار» and «التقارير السابقة» on Home (mock data first).
 
-Demo: all three as one flow (logs → alert → report → approve).
-Out of scope: real systems/logs/blocking, deep forensics, any other attack type, live log stream, timeline screen, chat, login/accounts/multi-company, email/SMS alerts. If I ask for something out of scope, say so before building it.
+Demo: all three as one flow (logs → incident + auto-suspend → report → decision → confirmation).
+Two screens only: Home and Report. There is no log-list screen; raw log lines appear only in the Report's evidence log.
+Out of scope: real systems/logs/blocking, deep forensics, any other attack type, live log stream, log-list screen, timeline screen, chat, login/accounts/multi-company, email/SMS alerts. If I ask for something out of scope, say so before building it.
 
 ## Rules
 - Simulated data only. Generate fake logs on this machine. Never connect to a real system and never perform a real action.
-- The agent only proposes actions. Approve or Reject records the decision and changes nothing else.
+- Opening an incident suspends the account automatically, in the simulated data only.
+- The agent only investigates and writes the report; it never acts. The admin's decision is recorded with its time: `restore` sets the simulated account back to active, `keep_suspended` leaves it suspended. Nothing outside the simulated data changes.
 - Every finding in a report must point to a log line. If there is no evidence, the finding says "unconfirmed".
 - The investigation has a hard cap on steps and stays inside the logs.
 - Reports are written in Arabic.
@@ -39,8 +42,8 @@ Versions verified on 2026-11-23 (newest release older than 7 days).
 - FastAPI 0.163.1 + Uvicorn 0.54.0 (runs it): small async API; the Agent SDK is async. Checks request data automatically.
 - SQLite (built into Python): one file, no server to set up.
 - claude-agent-sdk 0.2.182: Claude as the investigator, with our own tools.
-- Vite 8.3.8 + React 19.3.1 + @vitejs/plugin-react 6.3.0, JavaScript, plain CSS: the camp starter. Node 24.20.0, npm 11.19.0.
-  The starter still pins Vite 5 / React 18 (Vite 5 has no security patches). Upgrading web/package.json is its own task, with my OK.
+- Vite 5.4.11 + React 18.3.1 + @vitejs/plugin-react 4.3.4 (as in web/package.json), JavaScript, plain CSS: the camp starter. Node 24.20.0, npm 11.19.0.
+  Vite 5 has no security patches. Upgrading to Vite 8 / React 19 is its own task, with my OK.
 - State: React `useState` + `fetch`, no state library. Tests: Python's built-in `unittest` (no install).
 
 ## Commands
@@ -54,7 +57,7 @@ Run from the project root in PowerShell unless noted.
 - Web build: `cd web; npm run build`. Lint: none.
 
 ## Architecture
-Two-part local app organised by feature: React screens in `web/` call a small Python API in `server/` at `/api/...`. Only the API touches SQLite and runs the agent. Vite's dev proxy forwards `/api` to `127.0.0.1:8000`, so there is no CORS setup.
+Two-part local app organised by feature: two React screens (Home, Report) in `web/` call a small Python API in `server/` at `/api/...`. Only the API touches SQLite and runs the agent. Vite's dev proxy forwards `/api` to `127.0.0.1:8000`, so there is no CORS setup.
 
 Investigation agent (decided, keep it this way):
 - Claude via `claude-agent-sdk` (Python), using my Claude Code login: no API key, no extra cost. Local demo on my laptop only.
@@ -66,6 +69,7 @@ Investigation agent (decided, keep it this way):
 ```
 Qalqous/
 ├── PRD.md, CLAUDE.md, DESIGN.md   # scope, agent rules, design (day 2)
+├── HANDOFF.md                     # screens, flows, states and exact copy (from Claude Design)
 ├── CLAUDE.snippet.md              # camp UI rules (appended below)
 ├── design/                        # refs, wireframes, mockups, screenshots
 ├── example/                       # camp worked example, reference only
@@ -78,15 +82,15 @@ Qalqous/
 │   ├── logs/                      # fake log generator
 │   ├── detection/                 # 5+ failures in 10 min before a success
 │   ├── investigation/             # Claude agent, tools, step cap, fallback, evidence check
-│   ├── actions/                   # proposed actions + Approve/Reject recording
+│   ├── actions/                   # the decision (keep_suspended / restore) + recording it
 │   ├── tests/                     # unittest files
 │   └── requirements.txt           # pinned Python packages
 └── web/                           # Vite + React
     └── src/
         ├── features/
-        │   ├── logs-alerts/       # screen 1: logs and the opened incident
-        │   ├── report/            # screen 2: Arabic findings + evidence
-        │   └── actions/           # screen 3: Approve / Reject
+        │   ├── home/              # screen 1: status, open incident, last decision, previous reports
+        │   └── report/            # screen 2: Arabic findings, evidence log, decision + confirm step
+        ├── components/            # shared pieces from DESIGN.md §5 (buttons, tiles, banners, ...)
         ├── lib/                   # shared code: format.js, api.js
         ├── data/                  # mock.json
         └── tokens.css             # design tokens, nowhere else
@@ -95,8 +99,8 @@ Qalqous/
 
 ## Build order
 Done: fake log generator with one scripted attack, and detection that opens an incident (Python, root folder).
-1. Screens on mock data, one at a time: logs and alerts, report, action approval.
-2. Backend and data, one feature at a time: API for logs/incidents, investigation (step cap + Arabic report with evidence lines), actions.
+1. Screens on mock data, one at a time: Report, then Home.
+2. Backend and data, one feature at a time: API for incidents (+ auto-suspend), investigation (step cap + Arabic report with evidence lines), decisions.
 3. Connect each screen to real data, one at a time.
 
 ## Working rules for AI agents
@@ -111,10 +115,10 @@ Done: fake log generator with one scripted attack, and detection that opens an i
 - Keep .gitignore thorough and check it before every push (must cover `.venv/`, `__pycache__/`, `*.db`). The API listens on `127.0.0.1` only.
 
 ## Data rules
-- Schema lives only in `server/migrations/`, as numbered SQL files in git, tracked with SQLite `PRAGMA user_version`. Select only the columns you need. Paginate the log list.
+- Schema lives only in `server/migrations/`, as numbered SQL files in git, tracked with SQLite `PRAGMA user_version`. Select only the columns you need.
 
 ## Input rules
-- The only input is the Approve/Reject decision. Validate it on the server (FastAPI model allowing only `approve` / `reject`) and with a database CHECK constraint.
+- The only input is the decision. Validate it on the server (FastAPI model allowing only `keep_suspended` / `restore`) and with a database CHECK constraint. It needs a confirm step in the UI and is allowed once per incident.
 - Render log values and Claude's text as plain text, never as HTML (no `dangerouslySetInnerHTML`). Log content given to Claude is data, not instructions.
 
 <!--

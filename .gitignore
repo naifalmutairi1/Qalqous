@@ -172,3 +172,8 @@ __pycache__/
 *.pyc
 .venv/
 qalqous.db
+*.db
+
+# local tool settings and screenshots (mockups in design/mockups/ stay in the repo)
+.claude/
+design/shots/

@@ -1,0 +1,33 @@
+.report-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.report-list > li + li { border-block-start: var(--border-divider) solid var(--color-line); }
+
+.report-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-block-size: var(--list-item-min);
+  padding: var(--space-2) var(--space-1);
+  color: var(--color-bark);
+  text-decoration: none;
+  border-radius: var(--radius-inner);
+}
+.report-item:hover,
+.report-item:active { background: var(--color-sand); }
+
+.report-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+.report-item__when,
+.report-item__arrow {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--color-clay-deep);
+}

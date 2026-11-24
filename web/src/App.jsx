@@ -1,53 +1,48 @@
 import { useEffect, useState } from 'react';
-import Home from './screens/Home.jsx';
-import Detail from './screens/Detail.jsx';
-import Action from './screens/Action.jsx';
+import Home from './features/home/Home.jsx';
+import Report from './features/report/Report.jsx';
 
-// Three placeholder screens = your 3 key screens. Rename them to match design/wireframes.md.
-// Routing is a tiny hash switch (#/, #/detail/1, #/action): no library needed for 3 screens.
-const SCREENS = [
-  { path: '/', label: 'الرئيسية' },
-  { path: '/detail/1', label: 'التفاصيل' },
-  { path: '/action', label: 'الفعل الرئيسي' },
-];
+// Two screens, chosen by the part of the URL after "#" (a "hash router": no library needed):
+//   #/                    -> Home
+//   #/report/inc-0014     -> Report for one incident
+// Anything after "?" is a dev-only state switch, so we can screenshot every design state
+// without a backend, e.g. #/?state=loading or #/report/inc-0014?source=rules.
+function readHash() {
+  const raw = window.location.hash.replace(/^#/, '') || '/';
+  const [path, query = ''] = raw.split('?');
+  return { path, params: new URLSearchParams(query) };
+}
 
-function useHashPath() {
-  const read = () => window.location.hash.replace(/^#/, '') || '/';
-  const [path, setPath] = useState(read);
+function useHashRoute() {
+  const [route, setRoute] = useState(readHash);
   useEffect(() => {
-    const onChange = () => setPath(read());
+    const onChange = () => {
+      setRoute(readHash());
+      window.scrollTo(0, 0);
+    };
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
-  return path;
+  return route;
 }
 
 export default function App() {
-  const path = useHashPath();
+  const { path, params } = useHashRoute();
   const [, section, id] = path.split('/');
 
-  let screen = <Home />;
-  if (section === 'detail') screen = <Detail id={id} />;
-  if (section === 'action') screen = <Action />;
+  // Decisions made in this session, by incident id: { choice, decidedAt }.
+  // Kept here (not inside Report) so Home can show a decision made on the Report.
+  // Mock only: they are lost on reload until the backend saves them (Day 3).
+  const [decisions, setDecisions] = useState({});
+  const decide = (incidentId, choice) =>
+    setDecisions((d) => ({ ...d, [incidentId]: { choice, decidedAt: new Date().toISOString() } }));
 
-  return (
-    <>
-      <div className="starter-banner">
-        هذا هيكل رمادي عن قصد. الشكل يجي من DESIGN.md حقك. (يختفي الشريط لما تعبّي tokens.css)
-      </div>
-      <div className="shell">
-        <nav className="nav" aria-label="الشاشات">
-          {SCREENS.map((s) => {
-            const current = s.path === '/' ? path === '/' : path.startsWith('/' + s.path.split('/')[1]);
-            return (
-              <a key={s.path} href={'#' + s.path} aria-current={current ? 'page' : undefined}>
-                {s.label}
-              </a>
-            );
-          })}
-        </nav>
-        <main>{screen}</main>
-      </div>
-    </>
-  );
+  const screen =
+    section === 'report' ? (
+      <Report id={id} params={params} decisions={decisions} onDecide={decide} />
+    ) : (
+      <Home params={params} decisions={decisions} />
+    );
+
+  return <main className="page">{screen}</main>;
 }

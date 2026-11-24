@@ -1,0 +1,124 @@
+/* Home screen layout (home.png). Components bring their own styles; this file only places them.
+   Surfaces follow DESIGN.md: the sand banner sits on a white sheet; the white incident card sits on sand. */
+
+.home {
+  max-inline-size: var(--sheet-max);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Top sheet: logo + admin name, then the status strip. */
+.home-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-sheet);
+  border-radius: var(--radius-sheet);
+}
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-inline: var(--space-2);
+}
+.home-header__logo {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-title);
+}
+.home-header__admin {
+  font-size: var(--text-small);
+  color: var(--color-clay-deep);
+}
+
+/* Two columns on a laptop: the incident leads (start side, wider), history on the end side.
+   One column on a phone, incident first. */
+.home-columns {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (min-width: 820px) {
+  .home-columns { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  .home-columns--single { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Side panel: white, so list hover (sand) shows. */
+.home-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-sheet);
+  border-radius: var(--radius-card);
+}
+.home-side__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.home-side__section + .home-side__section {
+  padding-block-start: var(--space-5);
+  border-block-start: var(--border-divider) solid var(--color-line);
+}
+.home-side__label {
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-small);
+  color: var(--color-clay-deep);
+}
+
+/* «عرض الكل (N) ←»: text control under the list. */
+.home-more {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap);
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--color-bark);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+  cursor: pointer;
+}
+
+/* Loading card: the investigation steps. */
+.home-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.home-steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.home-steps__mark {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--space-5);
+  color: var(--color-bark);
+  font-weight: var(--weight-bold);
+}
+.home-steps__dot {
+  inline-size: var(--dot-size);
+  block-size: var(--dot-size);
+  border-radius: var(--radius-pill);
+  background: var(--color-clay);
+}
+
+@media (max-width: 600px) {
+  .home-top { padding: var(--space-4); }
+}

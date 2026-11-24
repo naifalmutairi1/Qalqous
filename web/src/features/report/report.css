@@ -1,0 +1,95 @@
+/* Report screen layout. Components bring their own styles; this file only places them. */
+
+.report {
+  max-inline-size: var(--sheet-max);
+  margin-inline: auto;
+}
+
+/* Header above the sheet: back link at the start (right), brand at the end (left), as in report-1.png. */
+.report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  padding-inline: var(--space-7);
+}
+.report-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--tap);
+  color: var(--color-clay-deep);
+  text-decoration: none;
+}
+.report-header__back:hover { color: var(--color-bark); }
+.report-header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.report-header__logo {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-title);
+}
+.report-header__company {
+  padding-inline-start: var(--space-3);
+  border-inline-start: var(--border-divider) solid var(--color-line); /* DESIGN.md: line = header separator */
+  font-size: var(--text-small);
+  color: var(--color-clay-deep);
+}
+
+/* The white sheet on sand. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: var(--space-7);
+  background: var(--color-sheet);
+  border-radius: var(--radius-sheet);
+}
+
+.report__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.report__meta,
+.report__basic {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--color-clay-deep);
+}
+.report__basic { font-weight: var(--weight-bold); }
+.report__headline {
+  font-size: var(--text-display);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-display);
+  text-wrap: balance;
+}
+.report__subline { color: var(--color-bark-soft); }
+
+.report__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.report__title {
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+/* A thin line above «قرارك», with 32px under it (DESIGN.md §4). */
+.report__decision {
+  padding-block-start: var(--space-6);
+  border-block-start: var(--border-divider) solid var(--color-line);
+}
+
+/* Phone: less padding, so the content keeps its width. */
+@media (max-width: 600px) {
+  .report-header { padding-inline: var(--space-2); }
+  .sheet { padding: var(--space-5); }
+}

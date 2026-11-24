@@ -1,69 +1,62 @@
 # قلقوص (Qalqous)
 
 ## Problem
-
 A solo IT admin at a small company learns an account was taken over only after it happens. The login records that would have shown it are thousands of lines long, and he has no time or security training to read them.
 
 ## User
-
-Abu Fahad, 34, the only IT person in a 25-person contracting company. He is pinged late at night when an employee reports something odd. He works from the office or his phone and needs to know fast: was there a breach, which account, how did they get in, what do I do first.
+Abu Fahad, 34, the only IT person in a 25-person contracting company. Knows what a log and an IP are, but can't tell an attack from a normal mistake. Opens Qalqous on his laptop late at night after an alert email, tense and wanting a clear answer fast: which account, how they got in, what that account can damage, and what to do.
 
 ## Goal
-
-Give a non-expert admin a trustworthy first answer about a login attack in minutes.
-**Worked if:** one week after launch, an IT admin who isn't me runs قلقوص on a simulated attack and, without my help, names the targeted account and the first step in under 5 minutes.
+Give a non-expert admin a trustworthy first answer about a login attack in minutes, and stop the damage while he sleeps.
+**Worked if:** one week after launch, an IT admin who isn't me runs قلقوص on a simulated attack and, without my help, names the targeted account and decides to restore it or keep it suspended in under 5 minutes.
 
 ## User stories
-
-* **Must** As an IT admin, I want قلقوص to spot a suspicious login pattern by itself and open an incident, so that I don't read thousands of lines.
-* **Must** As an IT admin, I want a short Arabic report (which account, how they got in, what to do first) with a log line behind every claim, so that I can trust it in minutes.
-* **Must** As an IT admin, I want any suggested action to wait for my Approve or Reject, so that nothing changes without me.
-* **Should** As an IT admin, I want a timeline of the attack, so that I see the order of events at a glance.
-* **Could** As an IT admin, I want to ask a follow-up in Arabic, so that I can clarify a finding.
+- **Must** As an IT admin, I want قلقوص to spot a successful login after repeated failures, open an incident and suspend the account (in the simulation) by itself, so that the attacker is stopped even if I'm asleep.
+- **Must** As an IT admin, I want a short Arabic report (which account, what it can damage, how many attempts, when, from which address and whether that address was seen before) with a log line behind every claim, so that I can tell an attack from an employee who forgot their password.
+- **Must** As an IT admin, I want to choose «إرجاع الحساب» or «إبقاءه موقوف», confirm it, and see a clear, lasting confirmation with the time, so that I know my decision was recorded.
+- **Should** As an IT admin, I want one email per new incident, so that I know without keeping the page open.
+- **Should** As an IT admin, I want to see previous reports and my past decisions, so that I can check what happened before.
+- **Could** As an IT admin, I want a timeline of the attack.
+- **Could** As an IT admin, I want to ask a follow-up question in Arabic.
 
 ## MVP scope
-
 The 3 Musts, with these limits:
 
-* One attack type only: repeated failed logins followed by a successful one.
-* Shallow on purpose: the investigation has a hard cap on steps and stays inside the log. It never guesses beyond it. If a claim has no log line behind it, the report says "unconfirmed".
-* Approve/Reject only records the decision. Nothing is really blocked.
-* Verdict on 4 days: the Musts fit only with these limits. A live log stream, a timeline view and chat do not fit and are cut.
+- One attack type only: 5 or more failed logins within 10 minutes, followed by a successful one.
+- Suspension happens only in the simulated data. No real system is touched.
+- Shallow on purpose: the investigation has a hard cap on steps and stays inside the log. If a claim has no log line behind it, the report says "unconfirmed".
+- If the AI investigation fails, a basic rule-based report is shown instead.
+- Qalqous never stores or compares passwords.
+- Verdict on 4 days: the Musts fit only with these limits. The Shoulds come after the Musts work.
 
 ## Out of scope
-
-* Real systems, real company logs, real blocking
-* Deep forensics or root-cause digging beyond what the logs show
-* Any attack or log type besides repeated failed logins then success
-* Live log stream, timeline view, chat (all post-MVP)
-* Login, accounts, multi-company
-* Email/SMS alerts
-* Claiming to replace a security team: this is first-pass triage
+- Real systems, real company logs, real blocking
+- Storing or comparing anyone's passwords
+- Deep forensics beyond what the logs show
+- Any attack or log type besides repeated failed logins then success
+- Contacting the affected employee (that's Abu Fahad's job, outside Qalqous)
+- SMS alerts, live log stream, chat
+- Login, accounts, multi-company
+- Claiming to replace a security team: this is first-pass triage
 
 ## Key screens
-
-1. **Logs \& alerts:** the simulated logs and the incident that was opened.
-2. **Investigation report:** the Arabic findings, each with its evidence line, or "unconfirmed".
-3. **Action approval:** the proposed action with Approve and Reject.
+1. **Home:** status (calm day, incident open, investigation running, or AI failed with basic report), the open incident, last decision, previous reports («عرض الكل» expands the list on Home).
+2. **Report:** headline, what happened, what the account can damage, the decision (with "are you sure?" and a green confirmation box), evidence log lines (collapsed).
 
 ## Data it remembers
-
-* Log events (time, account, source address, success or fail)
-* Incidents (status, when opened)
-* Investigation steps taken
-* Findings, each linked to its evidence log line
-* Proposed actions and the admin's decision with time
+- Log events (time, account, source address, success or fail)
+- Accounts (username and a one-line description of what each can access)
+- Incidents (account, status, when opened, suspended or not)
+- Investigation steps taken
+- Findings, each linked to its evidence log line
+- Decisions (restore or keep suspended) with time
 
 ## Open questions
-
-* What exact pattern counts as suspicious (how many failures, in how long)?
-* How many log lines make the demo feel real without slowing it?
-* Is the Arabic report clear to someone who isn't technical?
-* Which one real admin can test it after the demo?
+- How many log lines make the demo feel real without slowing it?
+- Is the Arabic report clear to someone who isn't technical?
+- Which one real admin can test it after the demo?
 
 ## Riskiest assumptions
-
-1. **It will only work on the attack I wrote.** If the data is scripted by me, the agent may look smart only on that one case, and a judge could notice.
-2. **A capped investigation is still useful.** Limiting depth to avoid wrong answers may leave reports too thin to name the account and first step.
-3. **12 hours is enough for a beginner.** Three Musts, an agent loop and an approval screen in 4 evenings leaves no slack if one part breaks.
-
+1. **Auto-suspend will not lock out honest employees too often.** A false alarm locks a real person out at night; the report must make it obvious when it was the employee.
+2. **It will only work on the attack I wrote.** If the data is scripted by me, the agent may look smart only on that one case.
+3. **12 hours is enough for a beginner.** Three Musts, an agent loop, auto-suspend and a decision screen in 4 evenings leaves no slack.

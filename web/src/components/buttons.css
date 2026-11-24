@@ -1,0 +1,62 @@
+/* buttons.css: every button shape from DESIGN.md §5.1–5.3. All buttons are pills.
+   Components import this file; screens never style buttons themselves. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--button-height);
+  padding-inline: var(--space-6);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-small);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur-fast);
+}
+
+/* Neutral (5.1 decision button, «رجوع», small «أعد المحاولة»): white fill, clay outline. */
+.btn--neutral {
+  background: var(--color-sheet);
+  border: var(--border-button) solid var(--color-clay);
+  color: var(--color-bark);
+}
+.btn--neutral:hover { background: var(--color-sand); }
+.btn--neutral:active { background: var(--color-sand); border-color: var(--color-bark-soft); }
+.btn--neutral:disabled {
+  background: var(--color-sand);
+  border-color: var(--color-sand);
+  color: var(--color-clay);
+  cursor: not-allowed;
+}
+
+/* Confirm «نعم، …» (5.2): bark fill. Intentionally heavier than «رجوع» next to it. */
+.btn--confirm {
+  background: var(--color-bark);
+  border: var(--border-button) solid var(--color-bark);
+  color: var(--color-sheet);
+}
+.btn--confirm:hover,
+.btn--confirm:active { background: var(--color-bark-soft); border-color: var(--color-bark-soft); }
+
+/* Primary (5.3): navigation only, never the decision. */
+.btn--primary {
+  background: var(--color-bark);
+  border: var(--border-button) solid var(--color-bark);
+  color: var(--color-sheet);
+}
+.btn--primary:hover,
+.btn--primary:active { background: var(--color-bark-soft); border-color: var(--color-bark-soft); }
+
+/* Lighter label weight: «رجوع» (5.2) and the small variant (5.3). */
+.btn--medium { font-weight: var(--weight-medium); }
+
+/* Small variant «أعد المحاولة» (5.3): neutral style, 48px, 15px. */
+.btn--small {
+  min-block-size: var(--button-height-small);
+  padding-inline: var(--space-5);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+}

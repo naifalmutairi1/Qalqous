@@ -1,0 +1,18 @@
+.facts { margin: 0; }
+
+.fact {
+  display: grid;
+  grid-template-columns: minmax(var(--fact-label-min), var(--fact-label-max)) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  padding-inline: var(--space-1);
+}
+.fact + .fact { border-block-start: var(--border-divider) solid var(--color-line); }
+
+.fact__label { color: var(--color-clay-deep); }
+.fact__value { margin: 0; color: var(--color-bark); text-wrap: pretty; }
+
+/* Phone: label above value, so the value gets the full width instead of a narrow column. */
+@media (max-width: 600px) {
+  .fact { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+}
