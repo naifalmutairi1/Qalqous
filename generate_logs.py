@@ -2,6 +2,7 @@
 
 Run:  python generate_logs.py            (random attack details each time)
       python generate_logs.py --seed 7   (same data every time, for testing)
+      add --show-answer to print which account was attacked
 
 All data is invented. IP addresses come from ranges reserved for
 documentation (RFC 5737), so they can never belong to a real machine.
@@ -113,7 +114,10 @@ def scripted_attack(target):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, help="fix the randomness")
-    seed = parser.parse_args().seed
+    parser.add_argument("--show-answer", action="store_true",
+                        help="print which account was attacked (for checking detection only)")
+    args = parser.parse_args()
+    seed = args.seed
     random.seed(seed)
 
     target = random.choice([e for e in EMPLOYEES if e != "it.admin"])
@@ -138,8 +142,10 @@ def main():
 
     failed = sum(1 for e in events if e[3] == 0)
     print(f"Wrote {len(events)} log lines ({failed} failed logins).")
-    print(f"Secret answer (for testing only): target={target}, attacker={attacker_ip}")
-    print(f"Near miss (should NOT alert): {near_miss_user}")
+    # Hidden by default, so a demo does not give away the answer before detection finds it.
+    if args.show_answer:
+        print(f"Secret answer (for testing only): target={target}, attacker={attacker_ip}")
+        print(f"Near miss (should NOT alert): {near_miss_user}")
 
 
 if __name__ == "__main__":

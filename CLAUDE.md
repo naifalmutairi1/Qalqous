@@ -70,6 +70,7 @@ Investigation agent (decided, keep it this way):
 - Hard cap: max 6 steps (`max_turns`). Then Claude writes the Arabic report.
 - Our code checks every finding: no real log line ID cited → rejected and marked "unconfirmed".
 - Rule-based investigator is the fallback when the Claude version fails or there is no login (for example, another admin's machine). It writes the same report shape from templates.
+- Until the AI investigator exists, every report is a rules report: Home shows the calm strip, and the card keeps its «تقرير أساسي» tag. Once the AI investigator exists, the failure strip («تعذّر إكمال التحقيق التفصيلي…») and «أعد المحاولة» show only when an AI attempt actually failed, not for every rules report.
 ## Project structure
 ```
 Qalqous/
@@ -98,7 +99,6 @@ Qalqous/
         │   └── report/            # screen 2: Arabic findings, evidence log, decision + confirm step
         ├── components/            # shared pieces from DESIGN.md §5 (buttons, tiles, banners, ...)
         ├── lib/                   # shared code: format.js, api.js
-        ├── data/                  # mock.json
         └── tokens.css             # design tokens, nowhere else
 ```
 `generate_logs.py` and `detect.py` are still in the root (they call `server/store.py`). Moving them into `server/` is its own task, with my OK.

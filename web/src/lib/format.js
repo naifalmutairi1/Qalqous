@@ -6,7 +6,7 @@
 // Never zero-pad (٥ not ٠٥) and never put a middle dot (U+00B7) next to a number: use «،».
 export const LOCALE = 'ar-SA-u-ca-gregory';
 
-// All times are shown in the company's timezone (mock.json company.timezone), not the browser's.
+// All times are shown in the company's timezone (server/config.py COMPANY timezone), not the browser's.
 // Without this, a laptop set to another timezone would show the wrong hour.
 const TIME_ZONE = 'Asia/Riyadh';
 

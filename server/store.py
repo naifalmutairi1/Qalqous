@@ -312,12 +312,11 @@ def home_summary():
         ).fetchall()
         open_incident_card = _incident_card(conn, open_row["id"]) if open_row else None
 
-    if open_incident_card is None:
-        status = "ok"
-    elif open_incident_card["status"] == "investigating":
+    # "error" (the AI investigation failed) is not used yet: there is no AI investigator, so a
+    # rules report is the normal case. Home still tags its card «تقرير أساسي» (from reportSource).
+    # Project rule: once the AI exists, "error" means an AI attempt actually failed.
+    if open_incident_card is not None and open_incident_card["status"] == "investigating":
         status = "investigating"
-    elif open_incident_card["reportSource"] == "rules":
-        status = "error"  # the AI investigation failed; a rule-based report is shown
     else:
         status = "ok"
 

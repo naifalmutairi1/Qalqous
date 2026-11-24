@@ -11,7 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent  # the project folder
 
 # One company, one admin, no login: these are constants, not database rows.
-COMPANY = {"name": "Najd Build Contracting", "timezone": "Asia/Riyadh"}
+COMPANY = {
+    "name": "Najd Build Contracting",
+    "timezone": "Asia/Riyadh",
+    "admin": {"displayName": "أبو فهد"},  # shown in the Home header
+}
 
 DEFAULT_DATABASE_URL = "sqlite:///qalqous.db"
 

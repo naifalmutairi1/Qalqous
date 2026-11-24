@@ -46,9 +46,12 @@ class HomeTest(StoreTestCase):
         self.assertEqual(home["openIncident"]["username"], "majed.f")
         self.assertEqual(home["decided"], [])
 
-    def test_rules_report_shows_error_status(self):
+    def test_rules_report_shows_ok_status(self):
+        # No AI investigator yet, so a rules report is normal, not a failure (project rule).
         self.ready_report(self.open_one(), source="rules")
-        self.assertEqual(store.home_summary()["monitor"]["status"], "error")
+        home = store.home_summary()
+        self.assertEqual(home["monitor"]["status"], "ok")
+        self.assertEqual(home["openIncident"]["reportSource"], "rules")
 
     def test_ai_report_shows_ok_status(self):
         self.ready_report(self.open_one(), source="ai")

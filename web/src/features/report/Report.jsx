@@ -5,7 +5,6 @@ import EvidenceLog from '../../components/EvidenceLog.jsx';
 import StatusBanner from '../../components/StatusBanner.jsx';
 import PrimaryButton from '../../components/PrimaryButton.jsx';
 import { ApiError, getReport, postDecision } from '../../lib/api.js';
-import { firstName } from '../../lib/data.js';
 import { fmtDuration, fmtNumber, fmtTime, fmtTimeSec, fmtWeekdayDate, pluralForm } from '../../lib/format.js';
 import Decision from './Decision.jsx';
 import { evidenceForFacts, serverConfirmed } from './findings.js';
@@ -117,6 +116,9 @@ function stateForError(error) {
   if (error.status === 409) return 'notReady';
   return 'error'; // 0 = no connection; 500/502 = the API is down behind the Vite proxy, or crashed
 }
+
+// First word of a person's name, for short sentences: «ماجد» from «ماجد بن فهد ...», «Sarah» from «Sarah Young».
+const firstName = (account) => (account?.displayName ?? '').split(' ')[0];
 
 // Dev-only switch to see «(غير مؤكد)»: #/report/1?drop=evt-40131,evt-40130 hides those log lines.
 // import.meta.env.DEV is true only under `npm run dev`, so a real build ignores it.

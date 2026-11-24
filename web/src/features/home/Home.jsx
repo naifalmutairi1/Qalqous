@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import StatusBanner from '../../components/StatusBanner.jsx';
 import IncidentCard from '../../components/IncidentCard.jsx';
 import PrimaryButton from '../../components/PrimaryButton.jsx';
 import ReportListItem from '../../components/ReportListItem.jsx';
-import { company, incidents, monitor } from '../../lib/data.js';
+import { getHome } from '../../lib/api.js';
 import { fmtAgo, fmtCount, fmtDate, fmtDayLabel, fmtTime } from '../../lib/format.js';
 import './home.css';
 
 // Screen 1: Home (HANDOFF.md 1c/1d/1e/1f, design/mockups/home.png for the layout).
-// decisions: decisions made in this session (from App). params: dev-only state switch.
+// Data comes from GET /api/home (lib/api.js): { company, monitor, openIncident | null, decided }.
+// params: dev-only state switch.
 
 const FIRST_LIST_SIZE = 2; // previous reports shown before «عرض الكل» (HANDOFF.md rule 12)
 
@@ -33,30 +34,75 @@ function devState(params) {
   return ['empty', 'loading', 'error'].includes(s) ? s : null;
 }
 
-export default function Home({ params, decisions }) {
-  const [retrying, setRetrying] = useState(false); // «أعد المحاولة» pressed: show the loading state
+export default function Home({ params }) {
+  const [load, setLoad] = useState('loading'); // the call to the API: loading | error | ready
+  const [data, setData] = useState(null);
+  const [attempt, setAttempt] = useState(0); // +1 = ask the API again («أعد المحاولة»)
   const [showAll, setShowAll] = useState(false);
 
-  // Merge the decisions made in this session into the mock incidents.
-  const all = incidents.map((i) => ({ ...i, decision: decisions[i.id] ?? i.decision }));
-  const decided = all
-    .filter((i) => i.decision)
-    .sort((a, b) => new Date(b.decision.decidedAt) - new Date(a.decision.decidedAt));
-  let open = all.filter((i) => !i.decision);
+  useEffect(() => {
+    let ignore = false; // drop an old answer if a newer request has started
+    setLoad('loading');
+    getHome()
+      .then((home) => {
+        if (ignore) return;
+        setData(home);
+        setLoad('ready');
+      })
+      .catch(() => {
+        if (!ignore) setLoad('error'); // never show the raw error
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [attempt]);
+  const retry = () => setAttempt((n) => n + 1);
 
+  const header = (
+    <header className="home-header">
+      <span className="home-header__logo">قلقوص</span>
+      {data && <span className="home-header__admin">{data.company.admin.displayName}</span>}
+    </header>
+  );
+
+  if (load !== 'ready') {
+    return (
+      <div className="home">
+        <div className="home-top">
+          {header}
+          {load === 'loading' ? (
+            <StatusBanner status="loading">نحضّر الصفحة…</StatusBanner>
+          ) : (
+            <StatusBanner
+              status="error"
+              action={
+                <PrimaryButton small onClick={retry}>
+                  أعد المحاولة
+                </PrimaryButton>
+              }
+            >
+              تعذّر فتح الصفحة الآن. تأكد أن قلقوص يعمل على هذا الجهاز، ثم أعد المحاولة.
+            </StatusBanner>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const { monitor, decided } = data; // decided: newest decision first
   const forced = devState(params);
-  if (forced === 'empty') open = [];
-  const incident = open[0] ?? (forced ? incidents[0] : null); // only one card is designed (rule 11)
-  const state = retrying ? 'loading' : forced ?? (incident ? 'open' : 'empty');
+  const incident = forced === 'empty' ? null : data.openIncident; // only one card is designed (rule 11)
+  // Which designed state to show:
+  //   loading = the investigation is running; error = an AI investigation failed (unused until the AI exists).
+  const state =
+    forced ??
+    (monitor.status === 'investigating' ? 'loading' : monitor.status === 'error' ? 'error' : incident ? 'open' : 'empty');
 
   return (
     <div className="home">
       <div className="home-top">
-        <header className="home-header">
-          <span className="home-header__logo">قلقوص</span>
-          <span className="home-header__admin">{company.admin.displayName}</span>
-        </header>
-        <Strip state={state} openCount={open.length} onRetry={() => setRetrying(true)} />
+        {header}
+        <Strip state={state} monitor={monitor} openCount={incident ? 1 : 0} onRetry={retry} />
       </div>
 
       <div className={decided.length > 0 ? 'home-columns' : 'home-columns home-columns--single'}>
@@ -100,7 +146,7 @@ export default function Home({ params, decisions }) {
 }
 
 // The status strip at the top: one sentence about the whole company right now.
-function Strip({ state, openCount, onRetry }) {
+function Strip({ state, monitor, openCount, onRetry }) {
   if (state === 'loading') {
     return <StatusBanner status="loading">قلقوص يراجع نشاطاً غير معتاد الآن</StatusBanner>;
   }
@@ -162,7 +208,8 @@ function MainCard({ state, incident }) {
   const title = <>أوقفنا حساب {user} مؤقتاً</>;
   const href = `#/report/${incident.id}`;
 
-  if (state === 'error') {
+  // A rule-based report gets the «تقرير أساسي» card, whatever the strip says (project rule).
+  if (state === 'error' || incident.reportSource === 'rules') {
     return (
       <IncidentCard
         tag="تقرير أساسي"

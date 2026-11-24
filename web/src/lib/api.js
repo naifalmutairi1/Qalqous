@@ -39,7 +39,7 @@ export const getHome = () => request('GET', '/home');
 // Report: one incident with logs, findings and decision. 404 unknown, 409 not ready yet.
 export const getIncident = (id) => request('GET', `/incidents/${id}`);
 
-// The Report screen's data, in the same shape it used with mock.json (lib/data.js):
+// The Report screen's data, in the shape the screen was built with:
 //   { company, incident, account, logs }
 // The API sends one object with `account` and `logs` inside it; this is the only place we split it.
 // incident.findings is the server's checked list: [{ kind, confirmed, evidenceLogIds }].

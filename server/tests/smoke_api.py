@@ -85,7 +85,8 @@ def main():
         check("  account shown as suspended", report["account"]["status"] == "suspended")
 
         status, home = call("GET", "/api/home")
-        check("  Home now shows the error banner (rules report)", home["monitor"]["status"] == "error")
+        check("  Home: calm strip, card says rules report",
+              home["monitor"]["status"] == "ok" and home["openIncident"]["reportSource"] == "rules")
 
         status, saved = call("POST", f"/api/incidents/{incident_id}/decision", {"choice": "restore"})
         check("POST decision 'restore' -> 200 with time", status == 200 and saved["decidedAt"].endswith("+03:00"))
