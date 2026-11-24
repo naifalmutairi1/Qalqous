@@ -208,7 +208,55 @@ def count_incidents():
         return conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0]
 
 
-# --- investigation (used by the investigator later, and by tests now) -------------
+# --- investigation (rule-based writer now, the Claude investigator later) ----------
+
+
+def investigation_input(incident_id):
+    """What an investigator needs to write a report, or None if there is no such incident.
+
+    lines: this incident's log lines (first failure to the triggering success), oldest first,
+    as {"id": 1479, "time": ..., "source_ip": ..., "success": True}.
+    seen_before_log_id: an earlier successful login of this account from the same address,
+    or None. It backs the "seen before" finding when the answer is yes.
+    """
+    with _connection() as conn:
+        incident = conn.execute(
+            "SELECT id, account, first_fail_log_id, trigger_log_id, source_ip, failed_attempts,"
+            " ip_seen_before FROM incidents WHERE id = ?",
+            (incident_id,),
+        ).fetchone()
+        if incident is None:
+            return None
+        lines = _evidence_rows(conn, incident)
+        earlier = conn.execute(
+            "SELECT id FROM log_events WHERE account = ? AND source_ip = ? AND success = 1 AND id < ?"
+            " ORDER BY id DESC LIMIT 1",
+            (incident["account"], incident["source_ip"], incident["trigger_log_id"]),
+        ).fetchone()
+    return {
+        "id": incident["id"],
+        "account": incident["account"],
+        "trigger_log_id": incident["trigger_log_id"],
+        "source_ip": incident["source_ip"],
+        "failed_attempts": incident["failed_attempts"],
+        "ip_seen_before": bool(incident["ip_seen_before"]),
+        "lines": [
+            {"id": row["id"], "time": row["time"], "source_ip": row["source_ip"], "success": bool(row["success"])}
+            for row in lines
+        ],
+        "seen_before_log_id": earlier["id"] if earlier else None,
+    }
+
+
+def known_log_ids(log_ids):
+    """Which of these ids are real log lines. The evidence check uses it."""
+    ids = list(log_ids)
+    if not ids:
+        return set()
+    with _connection() as conn:
+        placeholders = ", ".join("?" for _ in ids)  # SQLite-only: "?" placeholders
+        rows = conn.execute(f"SELECT id FROM log_events WHERE id IN ({placeholders})", ids).fetchall()
+    return {row["id"] for row in rows}
 
 
 def save_report(incident_id, report_source, headline_ar, summary_ar, findings):
@@ -352,6 +400,7 @@ def get_incident(incident_id):
             finding["evidenceLogIds"].append(_log_label(row["log_id"]))
 
     return {
+        "company": config.COMPANY,
         "id": incident["id"],
         "username": incident["account"],
         "status": incident["status"],

@@ -4,7 +4,7 @@ import Report from './features/report/Report.jsx';
 
 // Two screens, chosen by the part of the URL after "#" (a "hash router": no library needed):
 //   #/                    -> Home
-//   #/report/inc-0014     -> Report for one incident
+//   #/report/1            -> Report for incident 1 (Home's mock links use inc-0014)
 // Anything after "?" is a dev-only state switch, so we can screenshot every design state
 // without a backend, e.g. #/?state=loading or #/report/inc-0014?source=rules.
 function readHash() {
@@ -30,16 +30,13 @@ export default function App() {
   const { path, params } = useHashRoute();
   const [, section, id] = path.split('/');
 
-  // Decisions made in this session, by incident id: { choice, decidedAt }.
-  // Kept here (not inside Report) so Home can show a decision made on the Report.
-  // Mock only: they are lost on reload until the backend saves them (Day 3).
-  const [decisions, setDecisions] = useState({});
-  const decide = (incidentId, choice) =>
-    setDecisions((d) => ({ ...d, [incidentId]: { choice, decidedAt: new Date().toISOString() } }));
+  // Home is still on mock data and merges in decisions made in this session. The Report now saves
+  // its decision on the server, so there are none to pass. This goes when Home is connected.
+  const decisions = {};
 
   const screen =
     section === 'report' ? (
-      <Report id={id} params={params} decisions={decisions} onDecide={decide} />
+      <Report id={id} params={params} />
     ) : (
       <Home params={params} decisions={decisions} />
     );

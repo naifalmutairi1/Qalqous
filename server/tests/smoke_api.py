@@ -64,12 +64,9 @@ def main():
         status, home = call("GET", "/api/home")
         check("GET /api/home -> 200", status == 200)
         check("  open incident is majed.f", home["openIncident"]["username"] == "majed.f")
-        check("  monitor says investigating", home["monitor"]["status"] == "investigating")
+        check("  rule-based report is ready", home["openIncident"]["status"] == "awaiting_decision")
         check("  25 accounts monitored", home["monitor"]["accountsMonitored"] == 25)
         incident_id = home["openIncident"]["id"]
-
-        status, _ = call("GET", f"/api/incidents/{incident_id}")
-        check("GET report while investigating -> 409", status == 409)
 
         status, _ = call("GET", "/api/incidents/999")
         check("GET unknown incident -> 404", status == 404)
@@ -77,21 +74,14 @@ def main():
         status, _ = call("POST", f"/api/incidents/{incident_id}/decision", {"choice": "approve"})
         check("POST decision 'approve' -> 422", status == 422)
 
-        status, _ = call("POST", f"/api/incidents/{incident_id}/decision", {"choice": "restore"})
-        check("POST decision while investigating -> 409", status == 409)
-
-        # Stand in for the investigator (not built yet): store a rule-based report.
-        sys.path.insert(0, str(ROOT))
-        os.environ["DATABASE_URL"] = env["DATABASE_URL"]
-        from server import store
-        store.use_database(Path(tmp) / "smoke.db")
-        store.save_report(incident_id, "rules", "عنوان تجريبي", "ملخص تجريبي", [])
-
         status, report = call("GET", f"/api/incidents/{incident_id}")
         check("GET report when ready -> 200", status == 200)
         check("  10 failures + 1 success in the evidence log",
               [line["event"] for line in report["logs"]].count("LOGIN_FAIL") == 10
               and report["logs"][-1]["event"] == "LOGIN_SUCCESS")
+        check("  rules report with 5 confirmed findings",
+              report["reportSource"] == "rules" and len(report["findings"]) == 5
+              and all(f["confirmed"] and f["evidenceLogIds"] for f in report["findings"]))
         check("  account shown as suspended", report["account"]["status"] == "suspended")
 
         status, home = call("GET", "/api/home")

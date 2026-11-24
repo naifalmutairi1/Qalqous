@@ -2,6 +2,8 @@ import { useState } from 'react';
 import DecisionPair from '../../components/DecisionPair.jsx';
 import ConfirmBox from '../../components/ConfirmBox.jsx';
 import ConfirmationBox from '../../components/ConfirmationBox.jsx';
+import StatusBanner from '../../components/StatusBanner.jsx';
+import PrimaryButton from '../../components/PrimaryButton.jsx';
 import { fmtDate, fmtTime } from '../../lib/format.js';
 
 // The decision flow (HANDOFF.md 3.1 steps 9-12):
@@ -33,12 +35,30 @@ function copyFor(user, name) {
   };
 }
 
-// decision: the saved decision { choice, decidedAt } or null. onDecide(choice) saves one.
+// decision: the saved decision { choice, decidedAt } or null.
+// onDecide(choice) saves one on the server; it returns a promise that fails if saving failed.
 export default function Decision({ username, name, decision, onDecide }) {
   const [pending, setPending] = useState(null); // the choice waiting for "are you sure?"
   const [justDecided, setJustDecided] = useState(false);
+  const [saving, setSaving] = useState(false); // true while the server is saving: ignore more clicks
+  const [saveFailed, setSaveFailed] = useState(false);
   const copy = copyFor(username, name);
   const options = ['keep_suspended', 'restore'].map((choice) => ({ choice, ...copy[choice] }));
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    setSaveFailed(false);
+    setJustDecided(true); // move focus to the confirmation when it appears
+    try {
+      await onDecide(pending);
+    } catch {
+      setJustDecided(false);
+      setSaveFailed(true); // HANDOFF.md U5: stay on "are you sure?" and offer «أعد المحاولة»
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (decision) {
     const c = copy[decision.choice];
@@ -58,16 +78,30 @@ export default function Decision({ username, name, decision, onDecide }) {
   if (pending) {
     const c = copy[pending];
     return (
-      <ConfirmBox
-        confirmLabel={c.confirm}
-        onBack={() => setPending(null)}
-        onConfirm={() => {
-          setJustDecided(true);
-          onDecide(pending);
-        }}
-      >
-        {c.sure}
-      </ConfirmBox>
+      <>
+        {saveFailed && (
+          <StatusBanner
+            status="error"
+            action={
+              <PrimaryButton small onClick={save}>
+                أعد المحاولة
+              </PrimaryButton>
+            }
+          >
+            لم نتمكن من حفظ قرارك. تأكد أن قلقوص يعمل على هذا الجهاز، ثم أعد المحاولة.
+          </StatusBanner>
+        )}
+        <ConfirmBox
+          confirmLabel={c.confirm}
+          onBack={() => {
+            setPending(null);
+            setSaveFailed(false);
+          }}
+          onConfirm={save}
+        >
+          {c.sure}
+        </ConfirmBox>
+      </>
     );
   }
 

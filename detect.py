@@ -4,11 +4,13 @@ Rule (agreed in the plan): for one account, 5 or more FAILED logins
 within the 10 minutes before a SUCCESSFUL login.
 
 Run:  python detect.py
+Each new incident then gets a rule-based report (server/investigation/rules.py).
 """
 
 from datetime import datetime, timedelta
 
 from server import store
+from server.investigation import rules
 
 MIN_FAILURES = 5
 WINDOW = timedelta(minutes=10)
@@ -60,6 +62,9 @@ def main():
         print(f"  {len(failures)} failures (log lines {failures[0]['id']}-{failures[-1]['id']}),"
               f" then success at log line {success['id']} ({success['time']})")
         print(f"  Account {account} is now suspended (simulated).")
+        # The Claude investigator is not built yet, so the rule-based writer makes the report now.
+        rules.write_report(incident_id)
+        print("  Rule-based report written; waiting for the admin's decision.")
     print(f"Incidents in database: {store.count_incidents()}")
 
 

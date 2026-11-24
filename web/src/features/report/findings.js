@@ -8,6 +8,21 @@
 const sameMoment = (a, b) => new Date(a).getTime() === new Date(b).getTime();
 const ids = (lines) => lines.map((l) => l.id);
 
+// The server's name for each fact (server/investigation/evidence.py).
+const SERVER_KIND = {
+  attempts: 'failed_attempts',
+  successTime: 'success_time',
+  sourceIp: 'source_ip',
+  duration: 'duration',
+  seenBefore: 'seen_before',
+};
+
+// True if the server checked this fact and found a real log line for it.
+// A fact the server has no finding for counts as unconfirmed.
+export function serverConfirmed(incident, fact) {
+  return (incident.findings ?? []).some((f) => f.kind === SERVER_KIND[fact] && f.confirmed);
+}
+
 export function evidenceForFacts(incident, logs) {
   const fails = logs.filter((l) => l.event === 'LOGIN_FAIL');
   const successes = logs.filter((l) => l.event === 'LOGIN_SUCCESS');

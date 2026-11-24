@@ -1,16 +1,61 @@
+import { useEffect, useState } from 'react';
 import NumberTile, { TileRow } from '../../components/NumberTile.jsx';
 import FactRow, { FactList } from '../../components/FactRow.jsx';
 import EvidenceLog from '../../components/EvidenceLog.jsx';
-import { company, firstName, getAccount, getEvidenceLogs, getIncident } from '../../lib/data.js';
+import StatusBanner from '../../components/StatusBanner.jsx';
+import PrimaryButton from '../../components/PrimaryButton.jsx';
+import { ApiError, getReport, postDecision } from '../../lib/api.js';
+import { firstName } from '../../lib/data.js';
 import { fmtDuration, fmtNumber, fmtTime, fmtTimeSec, fmtWeekdayDate, pluralForm } from '../../lib/format.js';
 import Decision from './Decision.jsx';
-import { evidenceForFacts } from './findings.js';
+import { evidenceForFacts, serverConfirmed } from './findings.js';
 import './report.css';
 
 // Screen 2: the incident report (HANDOFF.md 1g, design/mockups/report-*.png).
-// decisions: decisions made in this session (from App), so they survive going back to Home.
-export default function Report({ id, params, decisions, onDecide }) {
-  const incident = getIncident(id);
+// Data comes from the API (lib/api.js). Five states:
+//   loading   -> waiting for the API
+//   notFound  -> no incident with this id (404), or an id that is not a number (422)
+//   notReady  -> the incident exists but its report is still being written (409)
+//   error     -> the API is not running or failed; «أعد المحاولة» asks again
+//   ready     -> the report
+export default function Report({ id, params }) {
+  const [state, setState] = useState('loading');
+  const [data, setData] = useState(null); // { company, incident, account, logs }
+  const [attempt, setAttempt] = useState(0); // +1 = load again («أعد المحاولة», or after a 409 on deciding)
+
+  useEffect(() => {
+    // `ignore` stops an old answer from replacing a newer one (if the id changes while loading).
+    let ignore = false;
+    setState('loading');
+    getReport(id)
+      .then((report) => {
+        if (ignore) return;
+        setData(report);
+        setState('ready');
+      })
+      .catch((error) => {
+        if (ignore) return;
+        setState(stateForError(error));
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [id, attempt]);
+
+  // Save the decision on the server. If it fails, Decision shows its own error and stays on «هل أنت متأكد؟».
+  async function decide(choice) {
+    try {
+      const saved = await postDecision(data.incident.id, choice);
+      setData((d) => ({ ...d, incident: { ...d.incident, status: 'decided', decision: saved } }));
+    } catch (error) {
+      // 409: someone already decided (another tab). Load the report again to show that decision.
+      if (error instanceof ApiError && error.status === 409) {
+        setAttempt((n) => n + 1);
+        return;
+      }
+      throw error;
+    }
+  }
 
   return (
     <div className="report">
@@ -20,39 +65,73 @@ export default function Report({ id, params, decisions, onDecide }) {
         </a>
         <div className="report-header__brand">
           <span className="report-header__logo">قلقوص</span>
-          <bdi className="report-header__company">{company.name}</bdi>
+          {data && <bdi className="report-header__company">{data.company.name}</bdi>}
         </div>
       </header>
 
-      {incident ? (
-        <ReportSheet
-          incident={incident}
-          decision={decisions[incident.id] ?? incident.decision}
-          onDecide={onDecide}
-          dropLogIds={devDropLogIds(params)}
-        />
-      ) : (
+      {state === 'loading' && <StatusBanner status="loading">نحضّر التقرير…</StatusBanner>}
+
+      {state === 'error' && (
+        <StatusBanner
+          status="error"
+          action={
+            <PrimaryButton small onClick={() => setAttempt((n) => n + 1)}>
+              أعد المحاولة
+            </PrimaryButton>
+          }
+        >
+          تعذّر فتح التقرير الآن. تأكد أن قلقوص يعمل على هذا الجهاز، ثم أعد المحاولة.
+        </StatusBanner>
+      )}
+
+      {state === 'notFound' && (
         <article className="sheet">
           <p>لم نجد هذا التقرير.</p>
         </article>
+      )}
+
+      {state === 'notReady' && (
+        <article className="sheet">
+          <p>التقرير لم يجهز بعد. نراجع ما حدث على الحساب، ويستغرق هذا عادةً أقل من دقيقتين.</p>
+        </article>
+      )}
+
+      {state === 'ready' && (
+        <ReportSheet
+          incident={data.incident}
+          account={data.account}
+          logs={data.logs}
+          onDecide={decide}
+          dropLogIds={devDropLogIds(params)}
+        />
       )}
     </div>
   );
 }
 
-// Dev-only switch to see «(غير مؤكد)»: #/report/inc-0014?drop=evt-40131,evt-40130 hides those log lines.
+// Which screen state an API error leads to. Anything unexpected is the friendly error banner:
+// we never show the raw error to the admin.
+function stateForError(error) {
+  if (!(error instanceof ApiError)) return 'error';
+  if (error.status === 404 || error.status === 422) return 'notFound';
+  if (error.status === 409) return 'notReady';
+  return 'error'; // 0 = no connection; 500/502 = the API is down behind the Vite proxy, or crashed
+}
+
+// Dev-only switch to see «(غير مؤكد)»: #/report/1?drop=evt-40131,evt-40130 hides those log lines.
 // import.meta.env.DEV is true only under `npm run dev`, so a real build ignores it.
 function devDropLogIds(params) {
   if (!import.meta.env.DEV) return [];
   return (params.get('drop') ?? '').split(',').filter(Boolean);
 }
 
-function ReportSheet({ incident, decision, onDecide, dropLogIds }) {
-  const account = getAccount(incident.username);
-  const logs = getEvidenceLogs(incident).filter((l) => !dropLogIds.includes(l.id));
+function ReportSheet({ incident, account, logs: allLogs, onDecide, dropLogIds }) {
+  const logs = allLogs.filter((l) => !dropLogIds.includes(l.id));
+  const decision = incident.decision;
   // The facts below are the findings: each needs a log line, or it is marked «(غير مؤكد)».
+  // Checked twice: the server's evidence check, and the log lines on this screen.
   const evidence = evidenceForFacts(incident, logs);
-  const unconfirmed = (fact) => evidence[fact].length === 0;
+  const unconfirmed = (fact) => !serverConfirmed(incident, fact) || evidence[fact].length === 0;
   const readyAt = incident.reportReadyAt ?? incident.openedAt;
   // "محاولات" for 3-10, "محاولة" for 11 and up (Arabic counted-noun rule).
   const attemptsWord = pluralForm(incident.failedAttempts) === 'few' ? 'محاولات' : 'محاولة';
@@ -109,7 +188,7 @@ function ReportSheet({ incident, decision, onDecide, dropLogIds }) {
           username={incident.username}
           name={firstName(account)}
           decision={decision}
-          onDecide={(choice) => onDecide(incident.id, choice)}
+          onDecide={onDecide}
         />
       </section>
 

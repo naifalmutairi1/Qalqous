@@ -39,5 +39,14 @@ export const getHome = () => request('GET', '/home');
 // Report: one incident with logs, findings and decision. 404 unknown, 409 not ready yet.
 export const getIncident = (id) => request('GET', `/incidents/${id}`);
 
+// The Report screen's data, in the same shape it used with mock.json (lib/data.js):
+//   { company, incident, account, logs }
+// The API sends one object with `account` and `logs` inside it; this is the only place we split it.
+// incident.findings is the server's checked list: [{ kind, confirmed, evidenceLogIds }].
+export async function getReport(id) {
+  const { company, account, logs, ...incident } = await getIncident(id);
+  return { company, incident, account, logs };
+}
+
 // Decision: choice is 'keep_suspended' or 'restore'. Returns { choice, decidedAt }. 409 if already decided.
 export const postDecision = (id, choice) => request('POST', `/incidents/${id}/decision`, { choice });
