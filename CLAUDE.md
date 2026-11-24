@@ -48,16 +48,21 @@ Versions verified on 2026-11-23 (newest release older than 7 days).
 
 ## Commands
 Run from the project root in PowerShell unless noted.
-- Python setup: `py -m venv .venv` then `.venv\Scripts\Activate.ps1` then `pip install -r server/requirements.txt` (to confirm: file not created yet)
-- Fake logs, then detection (today): `python generate_logs.py --seed 7` then `python detect.py`
-- API dev server: `uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload` (to confirm)
-- Tests: `python -m unittest discover server/tests` (to confirm)
+- Python setup: `py -m venv .venv` then `.venv\Scripts\Activate.ps1` then `pip install -r server/requirements.txt`
+  (every package pinned, dependencies included; the folder name is Arabic, so if pip crashes on output run `$env:PYTHONIOENCODING = "utf-8"` first)
+- Fake logs, then detection: `python generate_logs.py --seed 7` then `python detect.py`
+- API dev server: `uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload`
+- Tests: `python -m unittest discover server/tests`
+- API smoke test (starts the API on port 8765 against a temporary database): `python server/tests/smoke_api.py`
+- Database location: env var `DATABASE_URL` (default `sqlite:///qalqous.db`; see `server/.env.example`)
 - Web install: `cd web; npm install`
 - Web dev: `cd web; npm run dev` (phone on same Wi-Fi: `npm run phone`)
 - Web build: `cd web; npm run build`. Lint: none.
 
 ## Architecture
-Two-part local app organised by feature: two React screens (Home, Report) in `web/` call a small Python API in `server/` at `/api/...`. Only the API touches SQLite and runs the agent. Vite's dev proxy forwards `/api` to `127.0.0.1:8000`, so there is no CORS setup.
+Two-part local app organised by feature: two React screens (Home, Report) in `web/` call a small Python API in `server/` at `/api/...`, only through `web/src/lib/api.js`. Only the server touches SQLite and runs the agent. Vite's dev proxy forwards `/api` to `127.0.0.1:8000`, so there is no CORS setup.
+- `server/store.py` is the only code that opens the database. API routes, `detect.py`, `generate_logs.py` and the investigator call its functions and never write SQL. SQLite-only details (ids, time default, PRAGMAs, read-only connections, `?` placeholders) stay inside `store.py` or the migrations, each marked "SQLite-only".
+- Endpoints: `GET /api/home`, `GET /api/incidents/{id}` (409 while investigating), `POST /api/incidents/{id}/decision` (`{"choice": "keep_suspended" | "restore"}`, once).
 
 Investigation agent (decided, keep it this way):
 - Claude via `claude-agent-sdk` (Python), using my Claude Code login: no API key, no extra cost. Local demo on my laptop only.
@@ -77,7 +82,8 @@ Qalqous/
 ├── server/                        # Python API, database, agent
 │   ├── main.py                    # FastAPI app and /api routes
 │   ├── config.py                  # reads and checks env settings at startup
-│   ├── db.py                      # connection + runs migrations
+│   ├── store.py                   # the only file that opens the database; runs migrations
+│   ├── .env.example               # env var names only
 │   ├── migrations/                # 001_init.sql, ... the only way the schema changes
 │   ├── logs/                      # fake log generator
 │   ├── detection/                 # 5+ failures in 10 min before a success
@@ -95,7 +101,15 @@ Qalqous/
         ├── data/                  # mock.json
         └── tokens.css             # design tokens, nowhere else
 ```
-`generate_logs.py`, `detect.py` and `db.py` are still in the root. Moving them into `server/` is its own task, with my OK.
+`generate_logs.py` and `detect.py` are still in the root (they call `server/store.py`). Moving them into `server/` is its own task, with my OK.
+
+## Later: moving to Supabase
+Not now. Do not install any Supabase package until I say so. When we move:
+- **`server/store.py`** gets a Postgres version (a Postgres driver, `%s` placeholders, connection pool). Its function names and return shapes stay the same, so the API, detection and the investigator do not change.
+- **`DATABASE_URL`** points to the Supabase Postgres connection string. `server/config.py` stops refusing non-SQLite URLs.
+- **Migrations** are rewritten in Postgres syntax: ids become `GENERATED ALWAYS AS IDENTITY`, times become `timestamptz DEFAULT now()`, 0/1 becomes `boolean`, `PRAGMA user_version` becomes a `schema_migrations` table. CHECKs and the partial unique index carry over as they are.
+- **Row-level security** is needed only if the browser ever talks to Supabase directly. While the browser talks only to our API through `api.js`, the API is the gate and the database key stays on the server.
+- **The agent:** a public launch needs an **Anthropic API key** (set as an env var on the server) instead of my Claude Code login, which only works on my laptop.
 
 ## Build order
 Done: fake log generator with one scripted attack, and detection that opens an incident (Python, root folder).

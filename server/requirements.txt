@@ -1,0 +1,21 @@
+# Every package pinned to an exact version, dependencies included.
+# Rule: never a version published in the last 7 days (checked on PyPI 2026-11-24).
+# Install:  pip install -r server/requirements.txt
+
+# What we use directly
+fastapi==0.163.1
+uvicorn==0.54.0
+
+# What they need (pydantic, pydantic-core and annotated-doc held back: newer ones were under 7 days old)
+annotated-doc==0.0.6
+annotated-types==0.8.0
+anyio==4.16.0
+click==8.5.1
+h11==0.16.0
+idna==3.20
+opentelemetry-api==1.45.2
+pydantic==2.14.3
+pydantic-core==2.50.4
+starlette==1.10.0
+typing-extensions==4.16.0
+typing-inspection==0.4.5

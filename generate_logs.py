@@ -11,7 +11,7 @@ import argparse
 import random
 from datetime import datetime, timedelta
 
-from db import connect
+from server import store
 
 # username: (display name, one line of what the account can access). All invented.
 ACCOUNTS = {
@@ -130,22 +130,11 @@ def main():
 
     events.sort()  # by time, so log line IDs go up in time order
 
-    conn = connect()
-    # Start fresh every run. Old incidents etc. would point at log lines
-    # that no longer exist, so they are cleared too (children first,
-    # because foreign keys refuse to delete a row something still points to).
-    for table in ["finding_evidence", "findings", "investigation_steps", "decisions",
-                  "incidents", "log_events", "accounts"]:
-        conn.execute(f"DELETE FROM {table}")
-    conn.executemany(
-        "INSERT INTO accounts (username, display_name, access_ar) VALUES (?, ?, ?)",
+    # Start fresh every run: old incidents would point at log lines that no longer exist.
+    store.reset_and_load(
         [(username, name, access) for username, (name, access) in ACCOUNTS.items()],
-    )
-    conn.executemany(
-        "INSERT INTO log_events (time, account, source_ip, success) VALUES (?, ?, ?, ?)",
         events,
     )
-    conn.commit()
 
     failed = sum(1 for e in events if e[3] == 0)
     print(f"Wrote {len(events)} log lines ({failed} failed logins).")
