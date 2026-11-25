@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Home from './features/home/Home.jsx';
 import Report from './features/report/Report.jsx';
+import DemoBanner from './components/DemoBanner.jsx';
+import { DEMO } from './lib/api.js';
 
 // Two screens, chosen by the part of the URL after "#" (a "hash router": no library needed):
 //   #/                    -> Home
@@ -36,5 +38,11 @@ export default function App() {
       <Home />
     );
 
-  return <main className="page">{screen}</main>;
+  // The public demo (VITE_DEMO=1) shows its bar on every screen; the real app never does.
+  return (
+    <>
+      {DEMO && <DemoBanner />}
+      <main className="page">{screen}</main>
+    </>
+  );
 }

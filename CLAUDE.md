@@ -59,6 +59,7 @@ Run from the project root in PowerShell unless noted.
 - Web install: `cd web; npm install`
 - Web dev: `cd web; npm run dev` (phone on same Wi-Fi: `npm run phone`)
 - Web build: `cd web; npm run build`. Lint: none.
+- Public demo build (no API, demo data from `web/src/data/demo.json`, decisions in memory only): `cd web; $env:VITE_DEMO = "1"; npm run build; Remove-Item Env:VITE_DEMO`. On Vercel: Root Directory `web`, env var `VITE_DEMO=1`.
 
 ## Architecture
 Two-part local app organised by feature: two React screens (Home, Report) in `web/` call a small Python API in `server/` at `/api/...`, only through `web/src/lib/api.js`. Only the server touches SQLite and runs the agent. Vite's dev proxy forwards `/api` to `127.0.0.1:8000`, so there is no CORS setup.

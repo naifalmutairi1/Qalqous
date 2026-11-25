@@ -4,6 +4,22 @@
 //
 // Each function returns the JSON body, or throws an ApiError with the HTTP status and the
 // server's Arabic message (`detail`), so a screen can show the error banner.
+//
+// Demo mode (built with VITE_DEMO=1, for the public link): every function answers from lib/demo.js
+// instead, with the same shapes and errors, and nothing goes over the network.
+// Vite writes the flag's value into the code at build time, so each build keeps only its own branch.
+import * as demo from './demo.js';
+
+export const DEMO = import.meta.env.VITE_DEMO === '1';
+
+// Run a demo answer like a request: async, and its errors become ApiError like the server's.
+async function fromDemo(answer) {
+  try {
+    return answer();
+  } catch (error) {
+    throw new ApiError(error.status, error.message);
+  }
+}
 
 export class ApiError extends Error {
   constructor(status, message) {
@@ -34,10 +50,10 @@ async function request(method, path, body) {
 }
 
 // Home: { company, monitor, openIncident | null, decided: [...] newest first }
-export const getHome = () => request('GET', '/home');
+export const getHome = () => (DEMO ? fromDemo(demo.home) : request('GET', '/home'));
 
 // Report: one incident with logs, findings and decision. 404 unknown, 409 not ready yet.
-export const getIncident = (id) => request('GET', `/incidents/${id}`);
+export const getIncident = (id) => (DEMO ? fromDemo(() => demo.incident(id)) : request('GET', `/incidents/${id}`));
 
 // The Report screen's data, in the shape the screen was built with:
 //   { company, incident, account, logs }
@@ -49,9 +65,11 @@ export async function getReport(id) {
 }
 
 // Decision: choice is 'keep_suspended' or 'restore'. Returns { choice, decidedAt }. 409 if already decided.
-export const postDecision = (id, choice) => request('POST', `/incidents/${id}/decision`, { choice });
+export const postDecision = (id, choice) =>
+  DEMO ? fromDemo(() => demo.decide(id, choice)) : request('POST', `/incidents/${id}/decision`, { choice });
 
 // «أعد المحاولة» after a failed AI investigation: runs it again and waits (usually under 30 s, at most ~2 min).
 // Returns { reportSource: 'ai' | 'rules', aiFailed }. 409 if already decided, already an AI report,
 // or a run is going on now.
-export const retryInvestigation = (id) => request('POST', `/incidents/${id}/investigation`);
+export const retryInvestigation = (id) =>
+  DEMO ? fromDemo(() => demo.retry(id)) : request('POST', `/incidents/${id}/investigation`);
