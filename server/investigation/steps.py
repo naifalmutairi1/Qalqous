@@ -1,10 +1,10 @@
 """The hard cap on the investigation: at most 6 tool calls (steps) per attempt.
 
-Counted in OUR code, not by the SDK: the SDK's max_turns counts turns, and Claude can make
+Counted in OUR code, not by the SDK: the SDK's max_turns counts turns, and the AI can make
 several tool calls in one turn. So every call goes through StepCounter.call:
   calls 1-6 run the tool and are saved to investigation_steps (with their step number);
   call 7 and later are refused without running, and not saved (step_no is capped at 6).
-A call with bad input still uses up a step, so Claude cannot loop on mistakes for free.
+A call with bad input still uses up a step, so the AI cannot loop on mistakes for free.
 """
 
 from server import store

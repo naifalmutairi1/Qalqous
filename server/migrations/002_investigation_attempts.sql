@@ -31,7 +31,7 @@ DROP TABLE migration_guard;
 
 DROP TABLE investigation_steps;
 
--- Each tool call Claude makes. One tool call = one step; at most 6 per attempt.
+-- Each tool call the AI makes. One tool call = one step; at most 6 per attempt.
 CREATE TABLE investigation_steps (
     id          INTEGER PRIMARY KEY,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S+03:00', 'now', '+3 hours')),

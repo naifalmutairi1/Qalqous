@@ -47,7 +47,7 @@ def main():
     # The same steps as the demo, but into the temporary database.
     subprocess.run([sys.executable, "generate_logs.py", "--seed", "7"], cwd=ROOT, env=env, check=True,
                    stdout=subprocess.DEVNULL)
-    subprocess.run([sys.executable, "detect.py"], cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
+    subprocess.run([sys.executable, "detect.py", "--rules-only"], cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
 
     server = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "server.main:app", "--host", "127.0.0.1", "--port", str(PORT)],

@@ -40,7 +40,10 @@ def build_findings(data):
 
 
 def write_report(incident_id):
-    """Write and save the rule-based report. Returns False if there is no such incident."""
+    """Write and save the rule-based report.
+
+    Returns False if there is no such incident, or it is already decided (nothing is saved then).
+    """
     data = store.investigation_input(incident_id)
     if data is None:
         return False
@@ -50,5 +53,4 @@ def write_report(incident_id):
     headline = f"أوقفنا حساب {data['account']} مؤقتاً: احتمال دخول غير مصرّح به"
     summary = f"{str(n).translate(ARABIC_DIGITS)} {attempts_word(n)} فاشلة ثم دخول ناجح {where}."
 
-    save_checked_report(incident_id, "rules", headline, summary, build_findings(data))
-    return True
+    return save_checked_report(incident_id, "rules", headline, summary, build_findings(data))

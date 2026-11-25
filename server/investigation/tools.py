@@ -1,9 +1,9 @@
 """The investigator's three read-only tools: search_logs, count_events, build_timeline.
 
-They are plain Python here, with no SDK, so unittest can check them without Claude.
-(Task B wraps them for claude-agent-sdk.)
+They are plain Python here, with no SDK, so unittest can check them without the AI.
+(agent.py wraps them for claude-agent-sdk.)
 
-Each investigation makes its own IncidentTools, tied to one incident. Claude chooses only
+Each investigation makes its own IncidentTools, tied to one incident. The AI chooses only
 the filters; it can never change the account or read past the triggering success.
 They read through store.py's read-only connection and change nothing.
 """
@@ -18,15 +18,15 @@ TOOL_NAMES = ("search_logs", "count_events", "build_timeline")
 
 
 class ToolInputError(Exception):
-    """Claude sent a filter we cannot use. The message goes back to Claude (in English)."""
+    """The AI sent a filter we cannot use. The message goes back to the AI (in English)."""
 
 
 def _event(success):
     return "LOGIN_SUCCESS" if success else "LOGIN_FAIL"
 
 
-def _for_claude(line):
-    """A log line as Claude sees it: plain values, the id as a bare integer."""
+def _for_agent(line):
+    """A log line as the AI sees it: plain values, the id as a bare integer."""
     return {"log_id": line["id"], "time": line["time"], "event": _event(line["success"]),
             "source_ip": line["source_ip"]}
 
@@ -81,7 +81,7 @@ class IncidentTools:
         self.trigger_log_id = scope["trigger_log_id"]
 
     def run(self, tool, tool_input):
-        """Run one tool by name. tool_input is the dict Claude sent. Returns a dict."""
+        """Run one tool by name. tool_input is the dict the AI sent. Returns a dict."""
         if not isinstance(tool_input, dict):
             raise ToolInputError("input must be an object")
         if tool == "search_logs":
@@ -92,7 +92,7 @@ class IncidentTools:
             if tool_input:
                 raise ToolInputError("build_timeline takes no input")
             return self.build_timeline()
-        raise ValueError(f"unknown tool: {tool}")  # our bug, not Claude's: the SDK offers only the three
+        raise ValueError(f"unknown tool: {tool}")  # our bug, not the AI's: the SDK offers only the three
 
     def search_logs(self, source_ip=None, success=None, from_time=None, to_time=None):
         """This account's lines up to the triggering success, oldest first, at most 50."""
@@ -103,7 +103,7 @@ class IncidentTools:
             "account": self.account,
             "total": found["total"],
             "shown": len(found["lines"]),
-            "lines": [_for_claude(line) for line in found["lines"]],
+            "lines": [_for_agent(line) for line in found["lines"]],
         }
 
     def count_events(self, source_ip=None, success=None, from_time=None, to_time=None):
@@ -121,7 +121,7 @@ class IncidentTools:
         previous = None
         for line in found["lines"]:
             at = datetime.fromisoformat(line["time"])
-            entry = _for_claude(line)
+            entry = _for_agent(line)
             entry["seconds_since_previous"] = None if previous is None else int((at - previous).total_seconds())
             timeline.append(entry)
             previous = at

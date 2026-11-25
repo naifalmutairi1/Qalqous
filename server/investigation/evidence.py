@@ -1,6 +1,6 @@
 """The evidence check: every finding must point to a real log line of THIS incident.
 
-Both investigators (rules and Claude) save their report through save_checked_report.
+Both investigators (rules and the AI) save their report through save_checked_report.
 A log id is kept only if it belongs to the incident and fits the finding's kind:
 
   failed_attempts  a LOGIN_FAIL line of the incident
@@ -58,6 +58,9 @@ def check_findings(incident_id, findings):
 
 
 def save_checked_report(incident_id, report_source, headline_ar, summary_ar, findings):
-    """Check the evidence, then store the report. The incident becomes awaiting_decision."""
-    store.save_report(incident_id, report_source, headline_ar, summary_ar,
+    """Check the evidence, then store the report. The incident becomes awaiting_decision.
+
+    Returns False if the report was not saved (no such incident, or already decided).
+    """
+    return store.save_report(incident_id, report_source, headline_ar, summary_ar,
                       check_findings(incident_id, findings))

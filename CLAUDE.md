@@ -51,6 +51,7 @@ Run from the project root in PowerShell unless noted.
 - Python setup: `py -m venv .venv` then `.venv\Scripts\Activate.ps1` then `pip install -r server/requirements.txt`
   (every package pinned, dependencies included; the folder name is Arabic, so if pip crashes on output run `$env:PYTHONIOENCODING = "utf-8"` first)
 - Fake logs, then detection: `python generate_logs.py --seed 7` then `python detect.py`
+  (the AI investigates each new incident, up to 2 minutes; `python detect.py --rules-only` skips the AI and writes the rule-based report only, for tests or a machine without the login)
 - API dev server: `uvicorn server.main:app --host 127.0.0.1 --port 8000 --reload`
 - Tests: `python -m unittest discover server/tests`
 - API smoke test (starts the API on port 8765 against a temporary database): `python server/tests/smoke_api.py`

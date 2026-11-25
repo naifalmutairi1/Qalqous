@@ -78,7 +78,7 @@ CREATE TABLE decisions (
     choice      TEXT NOT NULL CHECK (choice IN ('keep_suspended', 'restore'))
 );
 
--- Each tool call Claude makes. One tool call = one step; at most 6.
+-- Each tool call the AI makes. One tool call = one step; at most 6.
 CREATE TABLE investigation_steps (
     id          INTEGER PRIMARY KEY,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S+03:00', 'now', '+3 hours')),

@@ -213,7 +213,7 @@ def count_incidents():
         return conn.execute("SELECT COUNT(*) FROM incidents").fetchone()[0]
 
 
-# --- investigation (rule-based writer now, the Claude investigator later) ----------
+# --- investigation (the rule-based writer and the AI investigator) ----------------
 
 
 def investigation_input(incident_id):
@@ -270,6 +270,42 @@ def start_attempt(incident_id):
                 ).fetchone()["id"]
         except sqlite3.IntegrityError as error:
             raise AttemptAlreadyRunning(incident_id) from error
+
+
+def finish_attempt(attempt_id, outcome, failure_reason=None, failure_detail=None):
+    """Close a running attempt: outcome is 'ai', 'failed' (with a reason) or 'discarded'."""
+    with _connection() as conn, conn:
+        conn.execute(
+            "UPDATE investigation_attempts SET outcome = ?, failure_reason = ?, failure_detail = ?,"
+            " finished_at = ? WHERE id = ? AND outcome = 'running'",
+            (outcome, failure_reason, failure_detail, _now(), attempt_id),
+        )
+
+
+def close_stale_attempts(incident_id, started_before):
+    """Mark attempts still 'running' that started before this time as failed: 'interrupted'.
+
+    A run whose program was killed (laptop closed, Ctrl+C) never closes its own row.
+    started_before is ISO text in Riyadh time; Python does the date math, not SQL.
+    Returns how many were closed.
+    """
+    with _connection() as conn, conn:
+        return conn.execute(
+            "UPDATE investigation_attempts SET outcome = 'failed', failure_reason = 'interrupted',"
+            " finished_at = ? WHERE incident_id = ? AND outcome = 'running' AND created_at < ?",
+            (_now(), incident_id, started_before),
+        ).rowcount
+
+
+def attempts_of(incident_id):
+    """All attempts for one incident, oldest first (for tests and for you while debugging)."""
+    with _connection() as conn:
+        rows = conn.execute(
+            "SELECT id, outcome, failure_reason, failure_detail, finished_at FROM investigation_attempts"
+            " WHERE incident_id = ? ORDER BY id",
+            (incident_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def save_step(attempt_id, step_no, tool, tool_input, tool_output):
@@ -352,8 +388,20 @@ def save_report(incident_id, report_source, headline_ar, summary_ar, findings):
 
     findings: [{"kind": "failed_attempts", "confirmed": True, "log_ids": [1479, ...]}, ...]
     A retry replaces the previous report's findings.
+    Returns False (and changes nothing) if there is no such incident or it is already decided:
+    the decision always wins over a report that finished late.
     """
     with _connection() as conn, conn:
+        # The UPDATE comes first on purpose: it is the transaction's first write, so from here
+        # until COMMIT no decision can slip in between our check and the new findings.
+        # Python makes the time, so this query has no SQLite-only date function.
+        updated = conn.execute(
+            "UPDATE incidents SET status = 'awaiting_decision', report_source = ?, headline_ar = ?,"
+            " summary_ar = ?, report_ready_at = ? WHERE id = ? AND status <> 'decided'",
+            (report_source, headline_ar, summary_ar, _now(), incident_id),
+        ).rowcount
+        if updated == 0:
+            return False
         conn.execute(
             "DELETE FROM finding_evidence WHERE finding_id IN"
             " (SELECT id FROM findings WHERE incident_id = ?)", (incident_id,)
@@ -368,12 +416,7 @@ def save_report(incident_id, report_source, headline_ar, summary_ar, findings):
                 "INSERT INTO finding_evidence (finding_id, log_id) VALUES (?, ?)",
                 [(finding_id, log_id) for log_id in finding["log_ids"]],
             )
-        # Python makes the time, so this query has no SQLite-only date function.
-        conn.execute(
-            "UPDATE incidents SET status = 'awaiting_decision', report_source = ?, headline_ar = ?,"
-            " summary_ar = ?, report_ready_at = ? WHERE id = ? AND status <> 'decided'",
-            (report_source, headline_ar, summary_ar, _now(), incident_id),
-        )
+        return True
 
 
 def _now():

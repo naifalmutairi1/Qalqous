@@ -1,4 +1,4 @@
-"""Checks the investigator's three read-only tools and the 6-step cap. No Claude needed."""
+"""Checks the investigator's three read-only tools and the 6-step cap. No AI needed."""
 
 from helpers import ATTACKER, StoreTestCase, burst
 from server import store

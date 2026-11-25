@@ -35,6 +35,6 @@ def _database_path():
 
 DATABASE_PATH = _database_path()
 
-# CLAUDE.md: if this is set, the Agent SDK may bill this key instead of the Claude Code login.
+# CLAUDE.md: if this is set, the Agent SDK may bill this key instead of the local login.
 if os.environ.get("ANTHROPIC_API_KEY"):
-    print("Warning: ANTHROPIC_API_KEY is set. Unset it to use your Claude Code login.", file=sys.stderr)
+    print("Warning: ANTHROPIC_API_KEY is set. Unset it so the AI agent uses your local login.", file=sys.stderr)
