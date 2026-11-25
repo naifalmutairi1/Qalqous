@@ -14,6 +14,7 @@ The SQL itself sticks to what both understand: INSERT ... RETURNING, CHECKs,
 no SQLite date functions in queries (Python does the date math).
 """
 
+import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -32,6 +33,10 @@ class IncidentNotFound(Exception):
 
 class DecisionNotAllowed(Exception):
     """The incident is still being investigated, or already has a decision."""
+
+
+class AttemptAlreadyRunning(Exception):
+    """An AI investigation of this incident is running now (one at a time)."""
 
 
 def use_database(path):
@@ -143,8 +148,8 @@ def reset_and_load(accounts, events):
     """
     with _connection() as conn, conn:  # the second "conn" = one transaction
         # Children first: foreign keys refuse to delete a row something points to.
-        for table in ["finding_evidence", "findings", "investigation_steps", "decisions",
-                      "incidents", "log_events", "accounts"]:
+        for table in ["finding_evidence", "findings", "investigation_steps", "investigation_attempts",
+                      "decisions", "incidents", "log_events", "accounts"]:
             conn.execute(f"DELETE FROM {table}")
         conn.executemany(
             "INSERT INTO accounts (username, display_name, access_ar) VALUES (?, ?, ?)", accounts
@@ -218,6 +223,7 @@ def investigation_input(incident_id):
     as {"id": 1479, "time": ..., "source_ip": ..., "success": True}.
     seen_before_log_id: an earlier successful login of this account from the same address,
     or None. It backs the "seen before" finding when the answer is yes.
+    seen_before_log_ids: all such earlier logins, newest first (the evidence check accepts any).
     """
     with _connection() as conn:
         incident = conn.execute(
@@ -228,11 +234,11 @@ def investigation_input(incident_id):
         if incident is None:
             return None
         lines = _evidence_rows(conn, incident)
-        earlier = conn.execute(
+        earlier = [row["id"] for row in conn.execute(
             "SELECT id FROM log_events WHERE account = ? AND source_ip = ? AND success = 1 AND id < ?"
-            " ORDER BY id DESC LIMIT 1",
+            " ORDER BY id DESC",
             (incident["account"], incident["source_ip"], incident["trigger_log_id"]),
-        ).fetchone()
+        ).fetchall()]
     return {
         "id": incident["id"],
         "account": incident["account"],
@@ -244,19 +250,101 @@ def investigation_input(incident_id):
             {"id": row["id"], "time": row["time"], "source_ip": row["source_ip"], "success": bool(row["success"])}
             for row in lines
         ],
-        "seen_before_log_id": earlier["id"] if earlier else None,
+        "seen_before_log_id": earlier[0] if earlier else None,
+        "seen_before_log_ids": earlier,
     }
 
 
-def known_log_ids(log_ids):
-    """Which of these ids are real log lines. The evidence check uses it."""
-    ids = list(log_ids)
-    if not ids:
-        return set()
+def start_attempt(incident_id):
+    """Record that an AI investigation of this incident starts now. Returns the attempt id.
+
+    Raises IncidentNotFound, or AttemptAlreadyRunning if one is running (the partial unique index).
+    """
     with _connection() as conn:
-        placeholders = ", ".join("?" for _ in ids)  # SQLite-only: "?" placeholders
-        rows = conn.execute(f"SELECT id FROM log_events WHERE id IN ({placeholders})", ids).fetchall()
-    return {row["id"] for row in rows}
+        try:
+            with conn:
+                if conn.execute("SELECT 1 FROM incidents WHERE id = ?", (incident_id,)).fetchone() is None:
+                    raise IncidentNotFound(incident_id)
+                return conn.execute(
+                    "INSERT INTO investigation_attempts (incident_id) VALUES (?) RETURNING id", (incident_id,)
+                ).fetchone()["id"]
+        except sqlite3.IntegrityError as error:
+            raise AttemptAlreadyRunning(incident_id) from error
+
+
+def save_step(attempt_id, step_no, tool, tool_input, tool_output):
+    """Store one tool call. tool_input and tool_output are dicts, kept as JSON text."""
+    with _connection() as conn, conn:
+        conn.execute(
+            "INSERT INTO investigation_steps (attempt_id, step_no, tool, tool_input, tool_output)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (attempt_id, step_no, tool,
+             json.dumps(tool_input, ensure_ascii=False), json.dumps(tool_output, ensure_ascii=False)),
+        )
+
+
+def attempt_steps(attempt_id):
+    """The saved steps of one attempt, in order (for tests and for you while debugging)."""
+    with _connection() as conn:
+        rows = conn.execute(
+            "SELECT step_no, tool, tool_input, tool_output FROM investigation_steps"
+            " WHERE attempt_id = ? ORDER BY step_no",
+            (attempt_id,),
+        ).fetchall()
+    return [
+        {"step_no": row["step_no"], "tool": row["tool"],
+         "tool_input": json.loads(row["tool_input"]), "tool_output": json.loads(row["tool_output"])}
+        for row in rows
+    ]
+
+
+# --- the investigator's read-only tools (server/investigation/tools.py) ------------
+
+
+def incident_scope(incident_id):
+    """Which lines one investigation may read: one account, up to the triggering success.
+
+    Returns {"account", "first_fail_log_id", "trigger_log_id"} or None. Read-only connection.
+    """
+    with connect_read_only() as conn:
+        row = conn.execute(
+            "SELECT account, first_fail_log_id, trigger_log_id FROM incidents WHERE id = ?", (incident_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def account_logs(account, up_to_log_id, from_log_id=None, source_ip=None, success=None,
+                 from_time=None, to_time=None, limit=50):
+    """One account's log lines up to (and including) up_to_log_id, oldest first, filtered.
+
+    Every filter is optional. Times are ISO text with the same +03:00 offset as the logs,
+    so comparing them as text gives the right order.
+    Returns {"total": how many lines match, "lines": the first `limit` of them}. Read-only connection.
+    """
+    where = ["account = ?", "id <= ?"]
+    params = [account, up_to_log_id]
+    # Each optional filter adds a fixed piece of SQL; the values always go in as parameters.
+    for clause, value in [("id >= ?", from_log_id), ("source_ip = ?", source_ip),
+                          ("success = ?", None if success is None else (1 if success else 0)),
+                          ("time >= ?", from_time), ("time <= ?", to_time)]:
+        if value is not None:
+            where.append(clause)
+            params.append(value)
+    condition = " AND ".join(where)
+    with connect_read_only() as conn:
+        total = conn.execute(f"SELECT COUNT(*) FROM log_events WHERE {condition}", params).fetchone()[0]
+        rows = conn.execute(
+            f"SELECT id, time, source_ip, success FROM log_events WHERE {condition}"
+            " ORDER BY time, id LIMIT ?",
+            params + [limit],
+        ).fetchall()
+    return {
+        "total": total,
+        "lines": [
+            {"id": row["id"], "time": row["time"], "source_ip": row["source_ip"], "success": bool(row["success"])}
+            for row in rows
+        ],
+    }
 
 
 def save_report(incident_id, report_source, headline_ar, summary_ar, findings):
