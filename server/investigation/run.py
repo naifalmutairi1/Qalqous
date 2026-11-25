@@ -12,7 +12,8 @@ the decision always wins.
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
 
 from server import store
 from server.investigation import agent, rules
@@ -22,27 +23,29 @@ from server.investigation.steps import StepCounter
 from server.investigation.tools import RIYADH, IncidentTools
 
 TIMEOUT_SECONDS = 120
-STALE_AFTER = timedelta(minutes=3)  # longer than the timeout, so a live run is never closed
 
 
 def investigate(incident_id, run_agent=None):
-    """Investigate one incident and save a report. For detect.py (not async).
+    """Investigate one incident and save a report. For detect.py and the retry endpoint (not async).
 
     Returns {"reportSource": "ai" | "rules" | None, "aiFailed": bool, "reason": text or None}.
     Raises store.IncidentNotFound, or store.AttemptAlreadyRunning if a run is going on now.
     run_agent: tests pass a fake here, so they need neither the SDK nor a login.
     """
-    return asyncio.run(investigate_async(incident_id, run_agent))
+    # Windows: the SDK starts a separate program, and only the "Proactor" event loop can do that.
+    # Choosing it here means the caller's own loop (uvicorn's, for example) does not matter.
+    loop_factory = asyncio.ProactorEventLoop if sys.platform == "win32" else None
+    return asyncio.run(investigate_async(incident_id, run_agent), loop_factory=loop_factory)
 
 
 async def investigate_async(incident_id, run_agent=None):
-    """The same, for async callers (the retry endpoint in task C)."""
+    """The same, as a coroutine. investigate() runs it in a fresh event loop."""
     run_agent = run_agent or agent.run_agent
     data = store.investigation_input(incident_id)
     if data is None:
         raise store.IncidentNotFound(incident_id)
 
-    cutoff = (datetime.now(RIYADH) - STALE_AFTER).isoformat(timespec="seconds")
+    cutoff = (datetime.now(RIYADH) - store.STALE_ATTEMPT_AFTER).isoformat(timespec="seconds")
     store.close_stale_attempts(incident_id, cutoff)
 
     attempt_id = store.start_attempt(incident_id)

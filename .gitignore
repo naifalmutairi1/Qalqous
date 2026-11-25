@@ -173,6 +173,5 @@ __pycache__/
 qalqous.db
 *.db
 
-# local tool settings and screenshots (mockups in design/mockups/ stay in the repo)
-.claude/
+# screenshots (mockups in design/mockups/ stay in the repo)
 design/shots/

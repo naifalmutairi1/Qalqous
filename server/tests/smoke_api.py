@@ -94,6 +94,12 @@ def main():
         status, _ = call("POST", f"/api/incidents/{incident_id}/decision", {"choice": "keep_suspended"})
         check("POST a second decision -> 409", status == 409)
 
+        # The retry endpoint, only where it refuses before the AI would start (no AI in the smoke test).
+        status, _ = call("POST", "/api/incidents/999/investigation")
+        check("POST retry, unknown incident -> 404", status == 404)
+        status, body = call("POST", f"/api/incidents/{incident_id}/investigation")
+        check("POST retry after the decision -> 409", status == 409 and "القرار" in body["detail"])
+
         status, report = call("GET", f"/api/incidents/{incident_id}")
         check("  account is active again after restore", report["account"]["status"] == "active")
 

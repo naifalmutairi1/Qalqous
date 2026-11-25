@@ -8,6 +8,7 @@
 // Each "click text" clicks the first button whose visible text contains it, in order,
 // so interactive states (e.g. "are you sure?") come from real clicks, not fake URL flags.
 // "scroll:<text>" scrolls to a heading or button instead of clicking it.
+// "wait:<ms>" waits, e.g. "wait:8000" to see a screen that updates itself every few seconds.
 // Example:
 //   node scripts/screenshot.mjs "http://localhost:5173/#/report/inc-0014" 375 ../design/shots/report-375.png "إبقاءه موقوف"
 import { spawn } from 'node:child_process';
@@ -65,6 +66,11 @@ try {
   await send('Runtime.evaluate', { expression: 'document.fonts.ready', awaitPromise: true });
 
   for (const text of clicks) {
+    // "wait:<ms>": just wait, so a page that updates by itself (polling) can be shot later.
+    if (text.startsWith('wait:')) {
+      await wait(Number(text.slice('wait:'.length)));
+      continue;
+    }
     // "scroll:<text>": scroll the first heading/button with that text to the top of the viewport.
     if (text.startsWith('scroll:')) {
       const target = text.slice('scroll:'.length);

@@ -50,3 +50,8 @@ export async function getReport(id) {
 
 // Decision: choice is 'keep_suspended' or 'restore'. Returns { choice, decidedAt }. 409 if already decided.
 export const postDecision = (id, choice) => request('POST', `/incidents/${id}/decision`, { choice });
+
+// «أعد المحاولة» after a failed AI investigation: runs it again and waits (usually under 30 s, at most ~2 min).
+// Returns { reportSource: 'ai' | 'rules', aiFailed }. 409 if already decided, already an AI report,
+// or a run is going on now.
+export const retryInvestigation = (id) => request('POST', `/incidents/${id}/investigation`);

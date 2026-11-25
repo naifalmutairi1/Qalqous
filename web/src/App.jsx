@@ -5,8 +5,7 @@ import Report from './features/report/Report.jsx';
 // Two screens, chosen by the part of the URL after "#" (a "hash router": no library needed):
 //   #/                    -> Home
 //   #/report/1            -> Report for incident 1
-// Anything after "?" is a dev-only state switch, so we can screenshot every design state,
-// e.g. #/?state=loading or #/report/1?drop=evt-1489.
+// Anything after "?" is a dev-only switch for screenshots, e.g. #/report/1?drop=evt-1489.
 function readHash() {
   const raw = window.location.hash.replace(/^#/, '') || '/';
   const [path, query = ''] = raw.split('?');
@@ -34,7 +33,7 @@ export default function App() {
     section === 'report' ? (
       <Report id={id} params={params} />
     ) : (
-      <Home params={params} />
+      <Home />
     );
 
   return <main className="page">{screen}</main>;

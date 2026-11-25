@@ -10,17 +10,20 @@ import Decision from './Decision.jsx';
 import { evidenceForFacts, serverConfirmed } from './findings.js';
 import './report.css';
 
+const POLL_MS = 3000; // while the report is being written, ask the API again this often
+
 // Screen 2: the incident report (HANDOFF.md 1g, design/mockups/report-*.png).
 // Data comes from the API (lib/api.js). Five states:
 //   loading   -> waiting for the API
 //   notFound  -> no incident with this id (404), or an id that is not a number (422)
-//   notReady  -> the incident exists but its report is still being written (409)
+//   notReady  -> the incident exists but its report is still being written (409); asks again every 3 s
 //   error     -> the API is not running or failed; «أعد المحاولة» asks again
 //   ready     -> the report
 export default function Report({ id, params }) {
   const [state, setState] = useState('loading');
   const [data, setData] = useState(null); // { company, incident, account, logs }
   const [attempt, setAttempt] = useState(0); // +1 = load again («أعد المحاولة», or after a 409 on deciding)
+  const [poll, setPoll] = useState(0); // +1 = still not ready: wait and ask again
 
   useEffect(() => {
     // `ignore` stops an old answer from replacing a newer one (if the id changes while loading).
@@ -40,6 +43,31 @@ export default function Report({ id, params }) {
       ignore = true;
     };
   }, [id, attempt]);
+
+  // Not ready yet: ask again every few seconds, quietly (the «لم يجهز بعد» text stays until the
+  // report arrives, with no «نحضّر التقرير…» in between). Still 409 -> `poll` + 1 -> this runs again.
+  useEffect(() => {
+    if (state !== 'notReady') return undefined;
+    let ignore = false;
+    const timer = setTimeout(() => {
+      getReport(id)
+        .then((report) => {
+          if (ignore) return;
+          setData(report);
+          setState('ready');
+        })
+        .catch((error) => {
+          if (ignore) return;
+          const next = stateForError(error);
+          if (next === 'notReady') setPoll((n) => n + 1);
+          else setState(next);
+        });
+    }, POLL_MS);
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [id, state, poll]);
 
   // Save the decision on the server. If it fails, Decision shows its own error and stays on «هل أنت متأكد؟».
   async function decide(choice) {

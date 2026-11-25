@@ -13,8 +13,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from server import store
+from server.investigation import run
 
 app = FastAPI(title="Qalqous")
+
+NOT_FOUND = "لا يوجد حادث بهذا الرقم."
 
 
 class DecisionIn(BaseModel):
@@ -33,7 +36,7 @@ def incident(incident_id: int):
     """One full report: facts, findings, evidence log lines and the decision if any."""
     found = store.get_incident(incident_id)
     if found is None:
-        raise HTTPException(status_code=404, detail="لا يوجد حادث بهذا الرقم.")
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
     if found["status"] == "investigating":
         raise HTTPException(status_code=409, detail="التقرير لم يجهز بعد.")
     return found
@@ -45,8 +48,34 @@ def decide(incident_id: int, body: DecisionIn):
     try:
         return store.record_decision(incident_id, body.choice)
     except store.IncidentNotFound:
-        raise HTTPException(status_code=404, detail="لا يوجد حادث بهذا الرقم.")
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
     except store.DecisionNotAllowed:
         raise HTTPException(
             status_code=409, detail="لا يمكن تسجيل القرار: سُجّل قرار من قبل، أو أن التقرير لم يجهز بعد."
         )
+
+
+@app.post("/api/incidents/{incident_id}/investigation")
+def retry_investigation(incident_id: int):
+    """«أعد المحاولة»: run the AI investigation again. Waits until it ends (usually under 30 s, at most ~2 min).
+
+    A plain `def` on purpose: FastAPI runs it in a worker thread, so Home and Report keep
+    answering while the AI works, and run.investigate() makes its own event loop there.
+    If the AI fails again, the rules report stays: still 200, with aiFailed = true.
+    """
+    found = store.incident_state(incident_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
+    if found["status"] == "decided":
+        raise HTTPException(status_code=409, detail="سُجّل القرار، لا حاجة لإعادة التحقيق.")
+    if found["reportSource"] == "ai":
+        raise HTTPException(status_code=409, detail="التقرير التفصيلي جاهز.")
+    try:
+        result = run.investigate(incident_id)
+    except store.AttemptAlreadyRunning:
+        raise HTTPException(status_code=409, detail="التحقيق يعمل الآن.")
+    except store.IncidentNotFound:
+        raise HTTPException(status_code=404, detail=NOT_FOUND)
+    if result["reportSource"] is None:  # the admin decided while the AI was working: the decision wins
+        raise HTTPException(status_code=409, detail="سُجّل القرار، لا حاجة لإعادة التحقيق.")
+    return {"reportSource": result["reportSource"], "aiFailed": result["aiFailed"]}

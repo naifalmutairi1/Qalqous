@@ -23,6 +23,10 @@ from server import config
 
 MIGRATIONS_DIR = config.ROOT / "server" / "migrations"
 
+# An attempt still 'running' after this long was killed (its program stopped). It is longer than
+# the 120 s timeout in investigation/run.py, so a live run is never mistaken for a dead one.
+STALE_ATTEMPT_AFTER = timedelta(minutes=3)
+
 _database_path = config.DATABASE_PATH
 _migrated = False  # migrations run once per process, on the first connection
 
@@ -442,14 +446,9 @@ def home_summary():
             " ORDER BY d.created_at DESC, d.id DESC"
         ).fetchall()
         open_incident_card = _incident_card(conn, open_row["id"]) if open_row else None
+        ai = _ai_state(conn, open_row["id"]) if open_row else None
 
-    # "error" (the AI investigation failed) is not used yet: there is no AI investigator, so a
-    # rules report is the normal case. Home still tags its card «تقرير أساسي» (from reportSource).
-    # Project rule: once the AI exists, "error" means an AI attempt actually failed.
-    if open_incident_card is not None and open_incident_card["status"] == "investigating":
-        status = "investigating"
-    else:
-        status = "ok"
+    status = _monitor_status(open_incident_card, ai)
 
     return {
         "company": config.COMPANY,
@@ -466,6 +465,48 @@ def home_summary():
             for row in decided_rows
         ],
     }
+
+
+def _ai_state(conn, incident_id):
+    """How the latest AI attempt for this incident stands: 'running', 'failed', 'done' or None (no attempt).
+
+    A 'running' attempt older than STALE_ATTEMPT_AFTER counts as failed: its program was killed.
+    """
+    row = conn.execute(
+        "SELECT outcome, created_at FROM investigation_attempts WHERE incident_id = ? ORDER BY id DESC LIMIT 1",
+        (incident_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    if row["outcome"] == "running":
+        stale = datetime.fromisoformat(row["created_at"]) < datetime.now(timezone.utc) - STALE_ATTEMPT_AFTER
+        return "failed" if stale else "running"
+    return "failed" if row["outcome"] == "failed" else "done"
+
+
+def _monitor_status(card, ai):
+    """The Home strip: investigating | error | ok.
+
+    investigating: the AI is working now, or the incident has no report yet.
+    error: the latest AI attempt really failed (project rule: never for a plain rules report,
+           for example one written by `detect.py --rules-only`, which makes no attempt).
+    """
+    if card is None:
+        return "ok"
+    if ai == "running":
+        return "investigating"
+    if ai == "failed" and (card["status"] == "investigating" or card["reportSource"] == "rules"):
+        return "error"
+    if card["status"] == "investigating":
+        return "investigating"
+    return "ok"
+
+
+def incident_state(incident_id):
+    """{"status", "reportSource"} of one incident, or None. The retry endpoint checks it first."""
+    with _connection() as conn:
+        row = conn.execute("SELECT status, report_source FROM incidents WHERE id = ?", (incident_id,)).fetchone()
+    return {"status": row["status"], "reportSource": row["report_source"]} if row else None
 
 
 def _incident_card(conn, incident_id):

@@ -3,15 +3,16 @@ import StatusBanner from '../../components/StatusBanner.jsx';
 import IncidentCard from '../../components/IncidentCard.jsx';
 import PrimaryButton from '../../components/PrimaryButton.jsx';
 import ReportListItem from '../../components/ReportListItem.jsx';
-import { getHome } from '../../lib/api.js';
+import { getHome, retryInvestigation } from '../../lib/api.js';
 import { fmtAgo, fmtCount, fmtDate, fmtDayLabel, fmtTime } from '../../lib/format.js';
 import './home.css';
 
 // Screen 1: Home (HANDOFF.md 1c/1d/1e/1f, design/mockups/home.png for the layout).
 // Data comes from GET /api/home (lib/api.js): { company, monitor, openIncident | null, decided }.
-// params: dev-only state switch.
+// monitor.status: investigating (the AI is working) | error (an AI attempt failed) | ok.
 
 const FIRST_LIST_SIZE = 2; // previous reports shown before «عرض الكل» (HANDOFF.md rule 12)
+const POLL_MS = 3000; // while the AI investigates, Home asks the API again this often
 
 // Arabic count forms (see fmtCount in lib/format.js).
 const OPEN_FORMS = {
@@ -27,17 +28,11 @@ const FAILED_FORMS = {
   one: 'محاولة فاشلة واحدة', two: 'محاولتان فاشلتان', few: '{n} محاولات فاشلة', many: '{n} محاولة فاشلة', other: '{n} محاولة فاشلة',
 };
 
-// Dev-only: #/?state=empty|loading|error shows the other designed states (ignored in a real build).
-function devState(params) {
-  if (!import.meta.env.DEV) return null;
-  const s = params.get('state');
-  return ['empty', 'loading', 'error'].includes(s) ? s : null;
-}
-
-export default function Home({ params }) {
+export default function Home() {
   const [load, setLoad] = useState('loading'); // the call to the API: loading | error | ready
   const [data, setData] = useState(null);
-  const [attempt, setAttempt] = useState(0); // +1 = ask the API again («أعد المحاولة»)
+  const [attempt, setAttempt] = useState(0); // +1 = load the page again (the API was not reachable)
+  const [retrying, setRetrying] = useState(false); // true while «أعد المحاولة» re-runs the AI investigation
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
@@ -57,6 +52,45 @@ export default function Home({ params }) {
     };
   }, [attempt]);
   const retry = () => setAttempt((n) => n + 1);
+
+  // While the AI investigates, ask again every few seconds. This is "quiet": the screen stays as it
+  // is (no «نحضّر الصفحة…») and only changes when the answer differs. Each new answer sets `data`,
+  // which runs this effect again, until the status is no longer `investigating`.
+  useEffect(() => {
+    if (load !== 'ready' || retrying || data.monitor.status !== 'investigating') return undefined;
+    let ignore = false;
+    const timer = setTimeout(() => {
+      getHome()
+        .then((home) => {
+          if (!ignore) setData(home);
+        })
+        .catch(() => {
+          if (!ignore) setLoad('error');
+        });
+    }, POLL_MS);
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [load, retrying, data]);
+
+  // «أعد المحاولة» on the failure strip: run the AI investigation again, then show the fresh Home.
+  // The request waits until the run ends; meanwhile the strip and card show "investigating".
+  async function rerunInvestigation() {
+    setRetrying(true);
+    try {
+      await retryInvestigation(data.openIncident.id);
+    } catch {
+      // 409 (already decided, already an AI report, or a run is going on now) or no connection:
+      // nothing to show here, the fresh Home below shows the real state.
+    }
+    try {
+      setData(await getHome());
+    } catch {
+      setLoad('error');
+    }
+    setRetrying(false);
+  }
 
   const header = (
     <header className="home-header">
@@ -90,19 +124,23 @@ export default function Home({ params }) {
   }
 
   const { monitor, decided } = data; // decided: newest decision first
-  const forced = devState(params);
-  const incident = forced === 'empty' ? null : data.openIncident; // only one card is designed (rule 11)
+  const incident = data.openIncident; // only one card is designed (rule 11)
   // Which designed state to show:
-  //   loading = the investigation is running; error = an AI investigation failed (unused until the AI exists).
+  //   loading = the investigation is running (or being re-run); error = the latest AI attempt failed.
   const state =
-    forced ??
-    (monitor.status === 'investigating' ? 'loading' : monitor.status === 'error' ? 'error' : incident ? 'open' : 'empty');
+    retrying || monitor.status === 'investigating'
+      ? 'loading'
+      : monitor.status === 'error'
+        ? 'error'
+        : incident
+          ? 'open'
+          : 'empty';
 
   return (
     <div className="home">
       <div className="home-top">
         {header}
-        <Strip state={state} monitor={monitor} openCount={incident ? 1 : 0} onRetry={retry} />
+        <Strip state={state} monitor={monitor} openCount={incident ? 1 : 0} onRetry={rerunInvestigation} />
       </div>
 
       <div className={decided.length > 0 ? 'home-columns' : 'home-columns home-columns--single'}>
